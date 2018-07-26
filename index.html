@@ -3,8 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <title>Document</title>
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-rc.2/css/materialize.min.css">
+
 </head>
 <body>
-    <h1>Hello</h1>
+    <nav>
+        <div class="nav-wrapper">
+            <a id="brand" href="#" class="brand-logo center">Laundry Manager</a>
+        </div>
+    </nav>
+
+    <div class="fixed-action-btn">
+        <a class="btn-floating btn-large red">
+            <i class="large material-icons">mode_edit</i>
+        </a>
+        <ul>
+            <li><a class="btn-floating red"><i class="material-icons">insert_chart</i></a></li>
+            <li><a class="btn-floating yellow darken-1"><i class="material-icons">format_quote</i></a></li>
+            <li><a class="btn-floating green"><i class="material-icons">publish</i></a></li>
+            <li><a class="btn-floating blue"><i class="material-icons">attach_file</i></a></li>
+        </ul>
+    </div>
+    <!-- Compiled and minified JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-rc.2/js/materialize.min.js"></script>
+    <script>
+
+    const electron = require('electron')
+    const {ipcRenderer, remote} = electron
+    let appsettings
+
+
+    function getAppSettings(data){
+        if (typeof data.appname !== 'undefined') {
+            const brand = document.querySelector('a#brand')
+            brand.innerHTML = data.appname
+            document.title = data.appname
+        }
+    }
+    
+    ipcRenderer.on('user:settings', (err, data) => {
+        console.log(data)
+        const brand = document.querySelector('a#brand')
+        brand.innerHTML = data.appname
+        document.title = data.appname
+    })
+
+    document.addEventListener('DOMContentLoaded', e => {
+        appsettings = remote.getCurrentWindow().appsettings
+        getAppSettings(appsettings)
+    })
+
+    </script>
 </body>
 </html>

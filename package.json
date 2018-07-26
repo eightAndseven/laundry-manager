@@ -10,6 +10,8 @@
   "author": "Reinier Santos",
   "license": "ISC",
   "dependencies": {
-    "electron": "^2.0.5"
+    "electron": "^2.0.5",
+    "electron-json-storage": "^4.1.1",
+    "materialize-css": "^1.0.0-rc.2"
   }
 }

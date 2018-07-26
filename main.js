@@ -1,13 +1,20 @@
 const electron = require('electron')
 const path = require('path')
 const url = require('url')
+const os = require('os')
+const storage = require('electron-json-storage')
 
-const {app, BrowserWindow, Menu, dialog} = electron
+const {app, BrowserWindow, Menu, dialog, ipcMain} = electron
 
+// Global variable
 process.env.NODE_ENV = 'dev'
-
 let windowMain
+let windowSettings
 
+global.globalappsettings = {}
+
+
+// Main window
 function createWindowMain(){
     windowMain = new BrowserWindow({
         'height' : 600,
@@ -22,11 +29,56 @@ function createWindowMain(){
         slashes : true
     }))
 
+    windowMain.on('closed', () => {
+        app.quit()
+    })
+
     const menu = Menu.buildFromTemplate(menuTemplate)
     Menu.setApplicationMenu(menu)
+
+    // Applications settings
+    // storage.get('appmanagersettings', mainAppSettings)
+    storage.get('appmanagersettings',  (err, data) => {
+        if (err) throw err
+        globalappsettings = data
+        windowMain.appsettings = globalappsettings
+    })
 }
 
-app.on('ready', createWindowMain)
+function mainAppSettings(err, data) {
+    if (err) throw err
+    globalappsettings = data
+
+    windowMain.webContents.send('user:settings', data)
+}
+
+
+// Settings Window
+function createSettingsWindow(){
+    windowSettings = new BrowserWindow({
+        title: 'User Settings'
+    })
+    windowSettings.loadURL(url.format({
+        pathname: path.join(__dirname, 'settings.html'),
+        protocol: 'file:',
+        slashes: true
+    }))
+    windowSettings.on('close', () => {
+        windowSettings = null
+    })
+    windowSettings.appsettings = JSON.stringify(globalappsettings)
+}
+
+// set storage
+function setStorageLoc(){
+    storage.setDataPath(os.tmpdir())
+    const dataPath = storage.getDataPath()
+}
+
+app.on('ready', () => {
+    setStorageLoc()
+    createWindowMain()
+})
 
 app.on('window-all-closed', () => {
     if (process.platform) {
@@ -34,10 +86,27 @@ app.on('window-all-closed', () => {
     }
 })
 
+/**
+ * ipcMain
+ */
+ipcMain.on('settings:update', (err, item) => {
+    itemupdate = JSON.parse(item)
+    console.log(itemupdate)
+    storage.set('appmanagersettings', itemupdate, (err) => {
+        if (err) throw err
+        storage.get('appmanagersettings', mainAppSettings)
+    })
+    windowSettings.close()
+    windowSettings = null
+})
+
+ipcMain.on('settings:cancel', (err, item) => {
+    windowSettings.close()
+    windowSettings = null
+})
 
 
-
-// Menu 
+// Menu Template
 const menuTemplate = [
     {
         label: 'File',
@@ -62,6 +131,18 @@ const menuTemplate = [
                             app.quit()
                         }
                     })
+                }
+            }
+        ]
+    },
+    {
+        label: 'Settings',
+        submenu: [
+            {
+                label: 'Open Settings',
+                accelerator:process.platform === 'darwin' ? 'Command+O' : 'Ctrl+O',
+                click(){
+                    createSettingsWindow()
                 }
             }
         ]

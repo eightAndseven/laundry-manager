@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="node_modules/materialize-css/dist/css/materialize.min.css">
+    <title>User Settings</title>
+</head>
+<body>
+    <div class="row">
+        <form id="form-settings" class="col s12">
+            <div class="input-field col s12">
+                <input type="text" id="app-name">
+                <label for="app-name">Application Name</label>
+            </div>
+            <div class="input-field col s12">
+                <textarea id="app-desc" class="materialize-textarea"></textarea>
+                <label for="app-desc">Application Description</label>
+            </div>
+        </form>
+        <!-- add column -->
+        <form id="form-add-column" class="col s6" style="display: block">
+            <h5>Add Column</h5>
+            <div class="col s12">
+                <div class="col s12">
+                    <div class="row " style="margin-bottom: -20px">
+                        <div class="input-field col s4">
+                            <input type="text" id="add-col-code">
+                            <label for="add-col-code">Column Code</label>
+                        </div>
+                        <div class="input-field col s8">
+                            <input type="text" id="add-col-name">
+                            <label for="add-col-name">Column Name</label>
+                            <p class="right-align">
+                                <label>
+                                    <input type="checkbox" id="add-col-req">
+                                    <span>Required?</span>
+                                </label>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="input-field">
+                        <textarea id="add-col-desc" class="materialize-textarea"></textarea>
+                        <label for="add-col-desc">Column Description</label>
+                    </div>
+                    <div class="row">
+                        <div class="input-field col s6">
+                            <select id="selectwn">
+                                <option value="1">Name</option>
+                                <option value="2">Cost</option>
+                            </select>
+                            <label for="input-field">Name or Cost?</label>
+                        </div>
+                        <div class="input-field col s6">
+                            <input type="text" id="add-col-price" disabled>
+                            <label for="add-col-price">Price</label>
+                        </div>
+                    </div>
+                    
+                    <div class="right-align" style="padding: 0px 10px">
+                        <a href="#" id="add-col-clear" class="waves-effect waves-teal btn-flat" style="margin: 0px 5px">Clear</a>
+                        <a href="#" id="add-col-btn" class="waves-effect waves-light btn" style="margin: 0px 5px">Add</a>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <!-- edit column -->
+        <form id="form-edit-column" class="col s6" style="display: none">
+            <h5>Edit Column</h5>
+            <div class="col s12">
+                <div class="col s12">
+                    <div class="row " style="margin-bottom: -20px">
+                        <div class="input-field col s4">
+                            <input type="text" id="edit-col-code">
+                            <label for="edit-col-code">Column Code</label>
+                        </div>
+                        <div class="input-field col s8">
+                            <input type="text" id="edit-col-name">
+                            <label for="edit-col-name">Column Name</label>
+                            <p class="right-align">
+                                <label>
+                                    <input type="checkbox" id="edit-col-req">
+                                    <span>Required?</span>
+                                </label>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="input-field">
+                        <textarea id="edit-col-desc" class="materialize-textarea"></textarea>
+                        <label for="edit-col-desc">Column Description</label>
+                    </div>
+                    <div class="row">
+                        <div class="input-field col s6">
+                            <select id="edit-selectwn">
+                                <option value="1">Name</option>
+                                <option value="2">Cost</option>
+                            </select>
+                            <label for="input-field">Name or Cost?</label>
+                        </div>
+                        <div class="input-field col s6">
+                            <input type="text" id="edit-col-price" disabled>
+                            <label for="edit-col-price">Price</label>
+                        </div>
+                    </div>
+                    
+                    <div class="right-align" style="padding: 0px 10px">
+                        <a href="#" id="edit-col-cancel" class="waves-effect waves-teal btn-flat" style="margin: 0px 5px">Cancel</a>
+                        <a href="#" id="edit-col-update" class="waves-effect waves-light btn" style="margin: 0px 5px">Update</a>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <div class="col s6">
+            <h5>Columns</h5>
+            <ul class="collapsible" id="ul-columns">
+            </ul>
+        </div>
+    </div>
+    <div class="row">
+        <div class="right-align" style="padding: 0px 10px">
+                <a href="#" id="review-cancel" class="waves-effect waves-teal btn-flat" style="margin: 0px 5px">Cancel</a>
+                <a href="#" id="review-changes" class="waves-effect waves-light btn" style="margin: 0px 5px">Review Changes</a>
+        </div>
+    </div>
+
+    <!-- modal-review -->
+    <div id="modal-review" class="modal">
+        <div class="modal-content">
+            <h5>Changes:</h5>
+            <div id="changes-settings">
+
+            </div>
+        </div>
+        <div class="modal-footer">
+            <a href="#" id="cancel-changes" class="modal-close waves-effect btn-flat">Back</a>
+            <a href="#" id="save-changes" class="modal-close waves-effect btn-flat">Save</a>
+        </div>
+    </div>
+    
+    <!-- scripts -->
+    <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="node_modules/materialize-css/dist/js/materialize.min.js"></script>
+    <script>if (window.module) module = window.module;</script>
+    <script src="settings.js"></script>
+</body>
+</html>
