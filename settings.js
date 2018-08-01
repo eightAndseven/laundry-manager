@@ -19,6 +19,9 @@ const electron = require('electron')
     // select
     const addcolselect = document.querySelector('select#selectwn')
     const editcolselect = document.querySelector('select#edit-selectwn')
+    // input
+    const inputaddprice = document.querySelector('input#add-col-price')
+    const inputediprice = document.querySelector('input#edit-col-price')
 
     const unixtime = () => Math.round((new Date).getTime() / 1000)
 
@@ -299,7 +302,7 @@ const electron = require('electron')
                 let addedcol = []
                 let removcol = []
                 let updatcol = []
-
+                console.log(remoteobj)
                 remoteobj.columns.forEach(item => {
                     remoteobjids.push(item.column_id)
                 })
@@ -569,11 +572,13 @@ const electron = require('electron')
         // check if column code already exists...
         let iscode = true
         const currentcolumns = appsettings.columns
-        currentcolumns.forEach(e => {
-            if (e.column_id === addcolcode.value) {
-                iscode = false
-            }
-        })
+        if (typeof currentcolumns !== 'undefined') {
+            currentcolumns.forEach(e => {
+                if (e.column_id === addcolcode.value) {
+                    iscode = false
+                }
+            })
+        }
         const addcolname = document.querySelector('input#add-col-name')
         const addcoldesc = document.querySelector('textarea#add-col-desc')
         const isrequired = document.querySelector('input#add-col-req')
@@ -797,6 +802,20 @@ const electron = require('electron')
         M.updateTextFields()
     })
 
+    // https://stackoverflow.com/questions/7295843/allow-only-numbers-to-be-typed-in-a-textbox
+    function inputnumbersonly(e) {
+        const ev = e ? e : window.event
+        const code = ev.which ? ev.which : ev.keyCode
+        if ((code >= 48 && code <= 57) || code == 46) {
+            if (code == 46 && e.target.value.includes('.')) e.preventDefault()
+            return ev.key
+        } else {
+            e.preventDefault()
+        }
+    }
+    inputaddprice.addEventListener('keypress', inputnumbersonly)
+
+    inputediprice.addEventListener('keypress', inputnumbersonly)
     
     document.addEventListener('DOMContentLoaded', () => {
 

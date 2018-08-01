@@ -12,6 +12,7 @@ let windowMain
 let windowSettings
 
 global.globalappsettings = {}
+global.apptransactions = []
 
 
 // Main window
@@ -43,12 +44,33 @@ function createWindowMain(){
         globalappsettings = data
         windowMain.appsettings = globalappsettings
     })
+    // create if there is no appsettings
+    storage.get('appmanagersettings', (err, data) => {
+        if (err) throw err
+        if (Object.keys(data).length == 0 && data.constructor === Object) {
+            emptyobj = {
+                appname: 'Laundry Manager',
+                appdesc: 'Sample POS Laundry Manager',
+                columns: []
+            }
+            storage.set('appmanagersettings', emptyobj, err => {
+                if (err) throw err
+                globalappsettings = emptyobj
+                windowMain.appsettings = globalappsettings
+            })
+        } else {
+            globalappsettings = data
+            windowMain.appsettings = globalappsettings
+        }   
+    })
+    apptransactions.push('hi im from main.js')
+    // windowMain.apptransactions = apptransactions
 }
 
 function mainAppSettings(err, data) {
     if (err) throw err
     globalappsettings = data
-
+    windowMain.appsettings = globalappsettings
     windowMain.webContents.send('user:settings', data)
 }
 
@@ -105,6 +127,25 @@ ipcMain.on('settings:cancel', (err, item) => {
     windowSettings = null
 })
 
+ipcMain.on('transact:add', (err, item) => {
+    // load from index.html is stringified
+    const load = JSON.parse(item)
+    console.log(buildtransaction('now', load))
+    
+    // apptransactions.push(load)
+    // console.log(load)
+})
+function buildtransaction (date, load) {
+    let total = 0
+    load.forEach(item => {
+        if (item.type === 'cost') total += (item.value.price * item.value.quantity)
+    })
+    return {
+        date : date,
+        transact : load,
+        total : total
+    }
+}
 
 // Menu Template
 const menuTemplate = [
