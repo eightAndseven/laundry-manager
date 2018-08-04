@@ -3,6 +3,8 @@ const path = require('path')
 const url = require('url')
 const os = require('os')
 const storage = require('electron-json-storage')
+const dateformat = require('dateformat')
+const xl = require('excel4node')
 
 const {app, BrowserWindow, Menu, dialog, ipcMain} = electron
 
@@ -10,6 +12,7 @@ const {app, BrowserWindow, Menu, dialog, ipcMain} = electron
 process.env.NODE_ENV = 'dev'
 let windowMain
 let windowSettings
+let currentSavePath = null
 
 global.globalappsettings = {}
 global.apptransactions = []
@@ -63,7 +66,6 @@ function createWindowMain(){
             windowMain.appsettings = globalappsettings
         }   
     })
-    apptransactions.push('hi im from main.js')
     // windowMain.apptransactions = apptransactions
 }
 
@@ -130,10 +132,11 @@ ipcMain.on('settings:cancel', (err, item) => {
 ipcMain.on('transact:add', (err, item) => {
     // load from index.html is stringified
     const load = JSON.parse(item)
-    console.log(buildtransaction('now', load))
+    const transaction = buildtransaction(dateformat(new Date(), 'yyyy-mm-dd HH:MM:ss'), load)
+    console.log(transaction)
+    apptransactions.push(transaction)
     
-    // apptransactions.push(load)
-    // console.log(load)
+    windowMain.webContents.send('table:add', JSON.stringify(transaction))
 })
 function buildtransaction (date, load) {
     let total = 0
@@ -147,6 +150,51 @@ function buildtransaction (date, load) {
     }
 }
 
+function saveAsExcel(transaction, filename) {
+    const wb = new xl.Workbook()
+
+    const ws = wb.addWorksheet('Sheet 1')
+    const ws2 = wb.addWorksheet('Sheet 2')
+
+    const style = wb.createStyle({
+        font : {
+            color : '#FF0800',
+            size : 12
+        },
+        numberFormat : 'Php ##.00;'
+    })
+
+    ws.cell(1, 1).number(100).style(style)
+    ws.cell(1, 2).number(200).style(style)
+    ws.cell(1, 3).formula('A1 + B1').style(style)
+    ws.cell(2, 1).string('string').style(style)
+    ws.cell(3, 1).bool(true).style(style).style({font: {size:20}})
+    wb.write(filename)
+}
+
+function saveAsFile(){
+    windowMain.webContents.executeJavaScript(`document.querySelector('input#work-title').value`, (title) => {
+        const options = {
+            defaultPath: title,
+            buttonLabel : 'Save As',
+            filters : [
+                {
+                    name : 'Excel Workbook',
+                    extensions : ['xlsx']
+                }
+            ]
+        }
+        dialog.showSaveDialog(windowMain, options, (filename) => {
+            if (filename !== undefined) {
+                saveAsExcel(apptransactions, filename)
+                currentSavePath = filename
+            }
+            console.log('Saved in ' + filename)
+        })
+    })
+}
+
+
 // Menu Template
 const menuTemplate = [
     {
@@ -156,6 +204,35 @@ const menuTemplate = [
                 label: 'Open File',
                 accelerator:process.platform === 'darwin' ? 'Command+F' : 'Ctrl+F',
                 click(){}
+            },
+            {
+                label: 'Save',
+                accelerator:process.platform === 'darwin' ? 'Command+S' : 'Ctrl+S',
+                click(){
+
+                    if (currentSavePath != null) {
+                        // has saved file
+                        windowMain.webContents.executeJavaScript(`document.querySelector('input#work-title').value`, value => {
+                            const dir = currentSavePath.split('\\')
+                            const currenttitle = value + '.xlsx'
+                            if (dir[dir.length-1] === currenttitle) {
+                                saveAsExcel(apptransactions, currentSavePath)
+                            } else {
+                                saveAsFile()
+                            }
+                        })
+                    } else {
+                        // has no current saved file
+                        saveAsFile()
+                    }
+                }
+            },
+            {
+                label: 'Save As...',
+                accelerator:process.platform === 'darwin' ? 'Command+Shift+S' : 'Ctrl+Shift+S',
+                click(){
+                    saveAsFile()
+                }
             },
             {
                 label: 'Quit',
