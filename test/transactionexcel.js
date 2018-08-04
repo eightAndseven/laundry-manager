@@ -175,7 +175,7 @@ let apptransact = [
         total: 244
     }
 ]
-const filename = 'C:\\Users\\Reinier\\Desktop\\test.xlsx'
+const filename = 'C:\\Users\\rein\\Desktop\\test.xlsx'
 
 const xl = require('excel4node')
 const fs = require('fs')
@@ -186,9 +186,9 @@ function saveAsExcel(columns, transaction, filename) {
     const ws = wb.addWorksheet('Transactions')
     const ws2 = wb.addWorksheet('Summary Report')
 
-    // const style = wb.createStyle({
+    // const numberstyle = wb.createStyle({
     //     font : {
-    //         color : '#FF0800',
+    //         color : '#000000',
     //         size : 12
     //     },
     //     numberFormat : 'Php ##.00;'
@@ -208,30 +208,68 @@ function saveAsExcel(columns, transaction, filename) {
         }
     })
     
+    // charcode to change letter and number
+    const codeletternumber = 64
+
     // counter for column
-    let xlcolumn = 1
+    let xlcolumnobj = {}
+    let xlcolumncounter = 1
+    let xlrowcounter = 1
+
+    // summary report object
+    let summaryreport = {}
 
     // print date
-    ws.cell(1, xlcolumn).string('date_time')
-    xlcolumn += 1
+    ws.cell(xlrowcounter, xlcolumncounter).string('date_time')
+    xlcolumnobj['date_time'] = codeletternumber + xlcolumncounter
+    xlcolumncounter += 1
 
     // print names
     columnname.forEach(item => {
-        ws.cell(1,xlcolumn).string(item.column_id)
-        xlcolumn += 1
+        ws.cell(xlrowcounter, xlcolumncounter).string(item.column_id)
+        xlcolumnobj[item.column_id] = codeletternumber + xlcolumncounter
+        xlcolumncounter += 1
     })
     // print costs
     columncost.forEach(item => {
-        ws.cell(1, xlcolumn).string(item.column_id)
-        xlcolumn += 1
+        ws.cell(xlrowcounter, xlcolumncounter).string(item.column_id)
+        xlcolumnobj[item.column_id] = codeletternumber + xlcolumncounter
+        xlcolumncounter += 1
     })
 
     // print total
-    ws.cell(1, xlcolumn).string('total')
-    xlcolumn += 1
+    ws.cell(xlrowcounter, xlcolumncounter).string('total')
+    xlcolumnobj['total'] = codeletternumber + xlcolumncounter
+    xlcolumncounter += 1
+
+    xlrowcounter += 1
 
     // print rows
-    
+    transaction.forEach(item => {
+        // print date
+        ws.cell(xlrowcounter, xlcolumnobj['date_time'] - codeletternumber).string(item.date)
+        
+        let totalformula = ''
+        // print custom columns
+        item.transact.forEach(i => {
+            if (i['type'] === 'name') {
+                ws.cell(xlrowcounter, xlcolumnobj[i['name']] - codeletternumber).string(i.value)
+            } else if (i['type'] === 'cost') {
+                const total = i['value']['price'] * i['value']['quantity']
+                ws.cell(xlrowcounter, xlcolumnobj[i['name']] - codeletternumber).number(total)
+                totalformula += totalformula === '' 
+                    ? String.fromCharCode(xlcolumnobj[i['name']]) + xlrowcounter.toString()
+                    : '+' + String.fromCharCode(xlcolumnobj[i['name']]) + xlrowcounter.toString()
+
+                
+            }
+        })
+        // print total
+        if (totalformula !== ''){
+            ws.cell(xlrowcounter, xlcolumnobj['total'] - codeletternumber).formula(totalformula)
+        }
+        xlrowcounter += 1
+    })
 
     // ws.cell(1, 1).number(100).style(style)
     // ws.cell(1, 2).number(200).style(style)
