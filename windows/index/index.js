@@ -342,6 +342,7 @@ ipcRenderer.on('user:settings', (err, data) => {
     document.title = data.appname
     appsettings = remote.getCurrentWindow().appsettings
     transanctioncolumns()
+    transactiontable()
 })
 
 ipcRenderer.on('table:add', (err, data) => {

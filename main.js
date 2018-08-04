@@ -4,7 +4,7 @@ const url = require('url')
 const os = require('os')
 const storage = require('electron-json-storage')
 const dateformat = require('dateformat')
-const xl = require('excel4node')
+const excel = require('./functions/excel')
 
 const {app, BrowserWindow, Menu, dialog, ipcMain} = electron
 
@@ -28,7 +28,7 @@ function createWindowMain(){
     })
 
     windowMain.loadURL(url.format({
-        pathname : path.join(__dirname, 'index.html'),
+        pathname : path.join(__dirname, 'windows/index/index.html'),
         protocol : 'file',
         slashes : true
     }))
@@ -83,7 +83,7 @@ function createSettingsWindow(){
         title: 'User Settings'
     })
     windowSettings.loadURL(url.format({
-        pathname: path.join(__dirname, 'settings.html'),
+        pathname: path.join(__dirname, 'windows/column-settings/settings.html'),
         protocol: 'file:',
         slashes: true
     }))
@@ -186,7 +186,9 @@ function saveAsFile(){
         }
         dialog.showSaveDialog(windowMain, options, (filename) => {
             if (filename !== undefined) {
-                saveAsExcel(apptransactions, filename)
+                excel.saveAsExcel(globalappsettings.columns, apptransactions, filename, (err) => {
+                    if (err) throw err
+                })
                 currentSavePath = filename
             }
             console.log('Saved in ' + filename)
@@ -216,7 +218,9 @@ const menuTemplate = [
                             const dir = currentSavePath.split('\\')
                             const currenttitle = value + '.xlsx'
                             if (dir[dir.length-1] === currenttitle) {
-                                saveAsExcel(apptransactions, currentSavePath)
+                                excel.saveAsExcel(globalappsettings.columns, apptransactions, currentSavePath, (err) => {
+                                    if (err) throw err
+                                })
                             } else {
                                 saveAsFile()
                             }
