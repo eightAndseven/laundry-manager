@@ -1,186 +1,6 @@
-let appsettings = {
-    appname:"Reinier's Store",
-    appdesc:"Sample POS Laundry Manager",
-    columns:[
-        {
-            column_id:"cust_name",
-            column_name:"Customer Name",
-            column_require:"Optional",
-            column_desc:"Name of the customer",
-            column_worn:"Name"
-        },
-        {
-            column_id:"candy",
-            column_name:"Candy",
-            column_require:"Optional",
-            column_desc:"Customer buys a candy",
-            column_worn:"Cost",
-            column_price:1
-        },
-        {
-            column_id:"jeep",
-            column_name:"Jeepney",
-            column_require:"Required",
-            column_desc:"Fare in the jeep",
-            column_worn:"Cost",
-            column_price:9
-        },
-        {
-            column_id:"chips",
-            column_name:"Chips",
-            column_require:"Optional",
-            column_desc:"Junk Food",
-            column_worn:"Cost",
-            column_price:40
-        },
-        {
-            column_id:"load",
-            column_name:"Sim load",
-            column_require:"Optional",
-            column_desc:"Load on sim",
-            column_worn:"Cost",
-            column_price:1
-        }
-    ]
-}
-
-let apptransact = [
-    {
-        date: '2018-08-03 18:21:02',
-        transact: [
-            {
-                name: 'cust_name', 
-                type: 'name', 
-                value: 'rein'
-            },
-            {
-                name: 'candy', 
-                type:'cost', 
-                value:{
-                    price: 1,
-                    quantity: 2
-                }
-            },
-            {
-                name: 'jeep', 
-                type:'cost', 
-                value:{
-                    price: 9,
-                    quantity: 3
-                }
-            },
-            {
-                name: 'chips', 
-                type:'cost', 
-                value:{
-                    price: 40,
-                    quantity: 4
-                }
-            },
-            {
-                name: 'load', 
-                type:'cost', 
-                value:{
-                    price: 1,
-                    quantity: 5
-                }
-            }
-        ],
-        total: 194
-    },
-    {
-        date: '2018-08-03 18:25:27',
-        transact: [
-            {
-                name: 'cust_name', 
-                type: 'name', 
-                value: 'jansen'
-            },
-            {
-                name: 'candy', 
-                type:'cost', 
-                value:{
-                    price: 1,
-                    quantity: 4
-                }
-            },
-            {
-                name: 'jeep', 
-                type:'cost', 
-                value:{
-                    price: 9,
-                    quantity: 3
-                }
-            },
-            {
-                name: 'chips', 
-                type:'cost', 
-                value:{
-                    price: 40,
-                    quantity: 2
-                }
-            },
-            {
-                name: 'load', 
-                type:'cost', 
-                value:{
-                    price: 1,
-                    quantity: 5
-                }
-            }
-        ],
-        total: 116
-    },
-    {
-        date: '2018-08-03 18:25:39',
-        transact: [
-            {
-                name: 'cust_name', 
-                type: 'name', 
-                value: 'santos'
-            },
-            {
-                name: 'candy', 
-                type:'cost', 
-                value:{
-                    price: 1,
-                    quantity: 2
-                }
-            },
-            {
-                name: 'jeep', 
-                type:'cost', 
-                value:{
-                    price: 9,
-                    quantity: 4
-                }
-            },
-            {
-                name: 'chips', 
-                type:'cost', 
-                value:{
-                    price: 40,
-                    quantity: 5
-                }
-            },
-            {
-                name: 'load', 
-                type:'cost', 
-                value:{
-                    price: 1,
-                    quantity: 6
-                }
-            }
-        ],
-        total: 244
-    }
-]
-const filename = 'C:\\Users\\Reinier\\Desktop\\test.xlsx'
-
 const xl = require('excel4node')
-const fs = require('fs')
 
-function saveAsExcel(columns, transaction, filename, callback) {
+function funcsaveAsExcel(columns, transaction, filename){
     const wb = new xl.Workbook()
 
     // worksheets
@@ -354,12 +174,25 @@ function saveAsExcel(columns, transaction, filename, callback) {
         })
         xlrowcounter += 1
     })
-
     wb.write(filename)
-    callback()
 }
 
-if (fs.existsSync(filename)) fs.unlinkSync(filename)
-saveAsExcel(appsettings.columns, apptransact, filename, () => {
+function resolveAsExcel(columns, transaction, filename) {
+    return new Promise(resolve => {
+        funcsaveAsExcel(columns, transaction, filename)
+        resolve()
+    })
+}
 
-})
+const saveAsExcel = async (columns, transaction, filename, callback) => {
+    try{
+        await resolveAsExcel(columns, transaction, filename)
+        callback(null)
+    } catch (err) {
+        callback(err)
+    }
+}
+
+module.exports = {
+    saveAsExcel : saveAsExcel
+}
