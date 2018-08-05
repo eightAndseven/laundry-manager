@@ -251,31 +251,66 @@ function transanctioncolumns(){
     })
 }
 
+// function to clear table
+function tableclearcontent() {
+    const thead = document.querySelector('thead#transaction-table-head')
+    const tbody = document.querySelector('tbody#transaction-table-body')
+    thead.innerHTML = ''
+    tbody.innerHTML = ''
+}
+
 // function to add an item in the table
-function tableadd(item) {
+function tableadd(column_item) {
     const tbody = document.querySelector('tbody#transaction-table-body')
     tr = document.createElement('tr')
     // date
     let td = document.createElement('td')
-    const date = dateformat(item.date, 'mmm dd, yy - hh:MM:ss TT')
+    const date = dateformat(column_item.date, 'mmm dd, yy - hh:MM:ss TT')
     let text = document.createTextNode(date)
     td.appendChild(text)
     tr.appendChild(td)
+
+    const thead = document.querySelector('thead#transaction-table-head')
+    const th = thead.querySelectorAll('th')
+    let columnarr = []
+    for (let i = 1; i < th.length - 1; i++) {
+        columnarr.push(th[i].getAttribute('column-code'))
+    }
+
+    // arrange columns
+    let transactarr = []
+    columnarr.forEach(i => {
+        column_item.transact.forEach(ii => {
+            if (i === ii.name) transactarr.push(ii)
+        })
+    })
+
     // columns
-    item.transact.forEach(itemt => {
+    transactarr.forEach(itemt => {
         td = document.createElement('td')
         text = itemt.type === 'cost'
             ? document.createTextNode(itemt.value.price * itemt.value.quantity)
             : document.createTextNode(itemt.value)
+
+        if (itemt.type === 'cost') {
+            td.className = 'tooltipped'
+            td.setAttribute('data-position', 'top')
+            td.setAttribute('data-tooltip', 'qty: ' + itemt.value.quantity)
+        }
         td.appendChild(text)
         tr.appendChild(td)
     })
+
     // total
     td = document.createElement('td')
-    text = document.createTextNode(item.total)
-    td.appendChild(text)
+    text = document.createTextNode(column_item.total)
+    td.appendChild(text) 
     tr.appendChild(td)
     tbody.insertBefore(tr, tbody.childNodes[0])
+    
+    // Materialize initialize
+    const elems = document.querySelectorAll('.tooltipped')
+    M.Tooltip.init(elems)
 }
 
 // function for 
@@ -332,6 +367,7 @@ document.addEventListener('DOMContentLoaded', e => {
     appsettings = remote.getCurrentWindow().appsettings
     getAppSettings(appsettings)
     transanctioncolumns()
+    tableclearcontent()
     transactiontable()
 })
 
@@ -342,6 +378,7 @@ ipcRenderer.on('user:settings', (err, data) => {
     document.title = data.appname
     appsettings = remote.getCurrentWindow().appsettings
     transanctioncolumns()
+    tableclearcontent()
     transactiontable()
 })
 
