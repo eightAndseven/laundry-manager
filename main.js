@@ -9,7 +9,7 @@ const excel = require('./functions/excel')
 const {app, BrowserWindow, Menu, dialog, ipcMain} = electron
 
 // Global variable
-process.env.NODE_ENV = 'dev'
+process.env.NODE_ENV = 'production'
 let windowMain
 let windowSettings
 let currentSavePath = null
@@ -38,7 +38,12 @@ function createWindowMain(){
     })
 
     const menu = Menu.buildFromTemplate(menuTemplate)
-    Menu.setApplicationMenu(menu)
+    // window Main Menu only
+    windowMain.setMenu(menu)
+
+    // all windows
+    // Menu.setApplicationMenu(menu)
+
 
     // Applications settings
     // storage.get('appmanagersettings', mainAppSettings)
@@ -91,6 +96,8 @@ function createSettingsWindow(){
         windowSettings = null
     })
     windowSettings.appsettings = JSON.stringify(globalappsettings)
+    // set menu to null
+    windowSettings.setMenu(null)
 }
 
 // set storage
