@@ -9,7 +9,7 @@ const excel = require('./functions/excel')
 const {app, BrowserWindow, Menu, dialog, ipcMain} = electron
 
 // Global variable
-process.env.NODE_ENV = 'production'
+process.env.NODE_ENV = 'dev'
 let windowMain
 let windowSettings
 let currentSavePath = null
@@ -145,6 +145,8 @@ ipcMain.on('transact:add', (err, item) => {
     
     windowMain.webContents.send('table:add', JSON.stringify(transaction))
 })
+
+// function to build transaction
 function buildtransaction (date, load) {
     let total = 0
     load.forEach(item => {
@@ -157,28 +159,7 @@ function buildtransaction (date, load) {
     }
 }
 
-function saveAsExcel(transaction, filename) {
-    const wb = new xl.Workbook()
-
-    const ws = wb.addWorksheet('Sheet 1')
-    const ws2 = wb.addWorksheet('Sheet 2')
-
-    const style = wb.createStyle({
-        font : {
-            color : '#FF0800',
-            size : 12
-        },
-        numberFormat : 'Php ##.00;'
-    })
-
-    ws.cell(1, 1).number(100).style(style)
-    ws.cell(1, 2).number(200).style(style)
-    ws.cell(1, 3).formula('A1 + B1').style(style)
-    ws.cell(2, 1).string('string').style(style)
-    ws.cell(3, 1).bool(true).style(style).style({font: {size:20}})
-    wb.write(filename)
-}
-
+// function for save as dialog
 function saveAsFile(){
     windowMain.webContents.executeJavaScript(`document.querySelector('input#work-title').value`, (title) => {
         const options = {
@@ -211,8 +192,82 @@ const menuTemplate = [
         submenu:[
             {
                 label: 'Open File',
-                accelerator:process.platform === 'darwin' ? 'Command+F' : 'Ctrl+F',
-                click(){}
+                accelerator:process.platform === 'darwin' ? 'Command+O' : 'Ctrl+O',
+                click(){
+                    function arrangeTransaction (transaction, summary, columns) {
+                        const apptransaction = []
+                        function buildsingletransaction (name, type, value) {
+                            return {
+                                name : name,
+                                type : type,
+                                value : value
+                            }
+                        }
+                        transaction.forEach(item => {
+                            const date = item['date_time']
+                            let transactarr = []
+                            let total = 0
+                            for (key in item) {
+                                if (key !== 'date_time'){
+                                    const foundcolumn = columns.find(obj => obj['column_id'] === key)
+                                    const name = key
+                                    const type = foundcolumn['column_worn'].toLowerCase()
+                                    let value
+                                    if (type === 'cost'){
+                                        const foundsummary = summary.filter(obj => obj['prod_name'] === key)
+                                        const valfromxl = parseFloat(item[key])
+                                        const sumprice = foundsummary.find(obj => valfromxl % parseFloat(obj['prod_price']) == 0)
+                                        const price = parseFloat(sumprice['prod_price'])
+                                        const qty = valfromxl / price
+                                        total += valfromxl
+                                        value = {
+                                            price : price,
+                                            quantity : qty
+                                        }
+                                    } else if (type === 'name'){
+                                        value = item[key]
+                                    }
+                                    transactarr.push(buildsingletransaction(name, type, value))
+                                }
+                            }
+                            apptransaction.push({
+                                date : date,
+                                transact : transactarr,
+                                total : total
+                            })
+                        })
+                        return apptransaction
+                    }
+                    
+                    const getfromExcel = (array, find) => array.filter(obj => obj[find])[0][find]
+                    const options = {
+                        title : 'Open Excel Workbook',
+                        filters : [
+                            {name : 'Excel Workbook', extensions : ['xlsx']}
+                        ],
+                        properties : ['openFile']
+                    }
+                    dialog.showOpenDialog(windowMain, options, (filename) => {
+                        if (filename !== undefined) {
+                            filename = filename[0]
+                            excel.openExcel(filename, (err, result) => {
+                                if (err) throw err
+                                const transaction = getfromExcel(result, 'Transactions')
+                                const summaryreport = getfromExcel(result, 'Summary Report')
+                                const columns = getfromExcel(result, 'Columns')
+                                const apptransact = arrangeTransaction(transaction, summaryreport, columns)
+                                columns.forEach(item => {
+                                    if (item.column_worn === 'Cost') item.column_price = parseFloat(item.column_price)
+                                })
+                                // change global variables
+                                apptransactions = apptransact
+                                globalappsettings.columns = columns
+                                const title = filename.split('\\')[filename.split('\\').length - 1].replace('.xlsx', '')
+                                windowMain.webContents.send('transact:open', title)
+                            })
+                        }
+                    })
+                }
             },
             {
                 label: 'Save',
@@ -269,7 +324,7 @@ const menuTemplate = [
         submenu: [
             {
                 label: 'Open Settings',
-                accelerator:process.platform === 'darwin' ? 'Command+O' : 'Ctrl+O',
+                accelerator:process.platform === 'darwin' ? 'Command+P' : 'Ctrl+P',
                 click(){
                     createSettingsWindow()
                 }

@@ -387,3 +387,14 @@ ipcRenderer.on('table:add', (err, data) => {
     const load = JSON.parse(data)
     tableadd(load)
 })
+
+ipcRenderer.on('transact:open', (err, data) => {
+    // load from main.js is title
+    const title = document.querySelector('input#work-title')
+    title.value = data
+    appsettings = remote.getGlobal('globalappsettings')
+    M.updateTextFields()
+    getAppSettings(appsettings)
+    tableclearcontent()
+    transactiontable()
+})
