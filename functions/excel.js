@@ -1,4 +1,5 @@
 const xl = require('excel4node')
+const xlsx = require('xlsx')
 
 function funcsaveAsExcel(columns, transaction, filename){
     const wb = new xl.Workbook()
@@ -193,6 +194,30 @@ const saveAsExcel = async (columns, transaction, filename, callback) => {
     }
 }
 
+function funcopenExcel(filename) {
+    const workbook = xlsx.readFile(filename)
+    const sheet_name_list = workbook.SheetNames
+    let excelsheets = []
+    sheet_name_list.forEach(item => {
+        let sheetobj = {}
+        sheetobj[item] = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name_list[sheet_name_list.indexOf(item)]])
+        excelsheets.push(sheetobj)
+    })
+    return excelsheets
+}
+
+const openExcel = async (filename, callback) => {
+    try {
+        const result = await new Promise(resolve => {
+            resolve(funcopenExcel(filename))
+        })
+        callback(null, result)
+    } catch (err) {
+        callback(err, null)
+    }
+}
+
 module.exports = {
-    saveAsExcel : saveAsExcel
+    saveAsExcel : saveAsExcel,
+    openExcel : openExcel
 }
