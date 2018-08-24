@@ -15,7 +15,6 @@
   "dependencies": {
     "dateformat": "^3.0.3",
     "electron": "^2.0.5",
-    "electron-json-storage": "^4.1.1",
     "excel4node": "^1.5.0",
     "materialize-css": "^1.0.0-rc.2",
     "xlsx": "^0.13.3"

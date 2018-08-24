@@ -1,15 +1,16 @@
 const electron = require('electron')
 const path = require('path')
 const url = require('url')
-const os = require('os')
-const storage = require('electron-json-storage')
 const dateformat = require('dateformat')
 const excel = require('./functions/excel')
+const localapp = require('./functions/localapp')
 
 const {app, BrowserWindow, Menu, dialog, ipcMain} = electron
 
+const localfolder = 'POSManager'
+
 // Global variable
-process.env.NODE_ENV = 'dev'
+process.env.NODE_ENV = 'production'
 let windowMain
 let windowSettings
 let currentSavePath = null
@@ -44,34 +45,11 @@ function createWindowMain(){
     // all windows
     // Menu.setApplicationMenu(menu)
 
-
-    // Applications settings
-    // storage.get('appmanagersettings', mainAppSettings)
-    storage.get('appmanagersettings',  (err, data) => {
-        if (err) throw err
+    localapp.createLocalAppDataSync(localfolder)
+    localapp.getColumnSetting(localfolder, (data) => {
         globalappsettings = data
         windowMain.appsettings = globalappsettings
     })
-    // create if there is no appsettings
-    storage.get('appmanagersettings', (err, data) => {
-        if (err) throw err
-        if (Object.keys(data).length == 0 && data.constructor === Object) {
-            emptyobj = {
-                appname: 'Laundry Manager',
-                appdesc: 'Sample POS Laundry Manager',
-                columns: []
-            }
-            storage.set('appmanagersettings', emptyobj, err => {
-                if (err) throw err
-                globalappsettings = emptyobj
-                windowMain.appsettings = globalappsettings
-            })
-        } else {
-            globalappsettings = data
-            windowMain.appsettings = globalappsettings
-        }   
-    })
-    // windowMain.apptransactions = apptransactions
 }
 
 function mainAppSettings(err, data) {
@@ -100,14 +78,7 @@ function createSettingsWindow(){
     windowSettings.setMenu(null)
 }
 
-// set storage
-function setStorageLoc(){
-    storage.setDataPath(os.tmpdir())
-    const dataPath = storage.getDataPath()
-}
-
 app.on('ready', () => {
-    setStorageLoc()
     createWindowMain()
 })
 
@@ -122,10 +93,10 @@ app.on('window-all-closed', () => {
  */
 ipcMain.on('settings:update', (err, item) => {
     itemupdate = JSON.parse(item)
-    console.log(itemupdate)
-    storage.set('appmanagersettings', itemupdate, (err) => {
-        if (err) throw err
-        storage.get('appmanagersettings', mainAppSettings)
+    localapp.updateColumnSetting(localfolder, itemupdate, (data) => {
+        globalappsettings = data
+        windowMain.appsettings = globalappsettings
+        windowMain.webContents.send('user:settings', data)
     })
     windowSettings.close()
     windowSettings = null
