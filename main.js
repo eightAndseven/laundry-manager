@@ -19,7 +19,9 @@ global.globalappsettings = {}
 global.apptransactions = []
 
 
-// Main window
+/**
+ * @description Function to create main window
+ */
 function createWindowMain(){
     windowMain = new BrowserWindow({
         'height' : 600,
@@ -49,6 +51,11 @@ function createWindowMain(){
     localapp.getColumnSetting(localfolder, (data) => {
         globalappsettings = data
         windowMain.appsettings = globalappsettings
+    })
+
+    localapp.openLocalTransact(localfolder, (err, data) => {
+        if (err) throw err
+        apptransactions = data
     })
 }
 
@@ -111,10 +118,11 @@ ipcMain.on('transact:add', (err, item) => {
     // load from index.html is stringified
     const load = JSON.parse(item)
     const transaction = buildtransaction(dateformat(new Date(), 'yyyy-mm-dd HH:MM:ss'), load)
-    console.log(transaction)
-    apptransactions.push(transaction)
-    
-    windowMain.webContents.send('table:add', JSON.stringify(transaction))
+    localapp.saveLocalTransact(localfolder, transaction, (err) => {
+        if (err) throw err
+        apptransactions.push(transaction)
+        windowMain.webContents.send('table:add', JSON.stringify(transaction))
+    })
 })
 
 // function to build transaction
