@@ -7,10 +7,10 @@ const localapp = require('./functions/localapp')
 
 const {app, BrowserWindow, Menu, dialog, ipcMain} = electron
 
-const localfolder = 'POSManager'
+const localfolder = 'POSManager2'
 
 // Global variable
-process.env.NODE_ENV = 'production'
+process.env.NODE_ENV = 'development'
 let windowMain
 let windowSettings
 let currentSavePath = null
@@ -29,7 +29,7 @@ function createWindowMain(){
     })
 
     windowMain.loadURL(url.format({
-        pathname : path.join(__dirname, 'windows/index/index.html'),
+        pathname : path.join(__dirname, 'browserwindows/index/index.html'),
         protocol : 'file',
         slashes : true
     }))
@@ -66,7 +66,7 @@ function createSettingsWindow(){
         title: 'User Settings'
     })
     windowSettings.loadURL(url.format({
-        pathname: path.join(__dirname, 'windows/column-settings/settings.html'),
+        pathname: path.join(__dirname, 'browserwindows/column-settings/settings.html'),
         protocol: 'file:',
         slashes: true
     }))
@@ -161,6 +161,25 @@ const menuTemplate = [
     {
         label: 'File',
         submenu:[
+            {
+                label: 'New Transaction Book',
+                accelerator: process.platform === 'darwin' ? 'Command+N' : 'Ctrl+N',
+                click() {
+                    const options = {
+                        title : 'New Transaction Book',
+                        filters : [
+                            {name : 'Excel Workbook', extensions : ['xlsx']}
+                        ],
+                        properties : ['openFile']
+                    }
+                    dialog.showOpenDialog(windowMain, options, (filename) => {
+                        if (filename !== undefined) {
+                            filename = filename[0]
+                            
+                        }
+                    })
+                }
+            },
             {
                 label: 'Open File',
                 accelerator:process.platform === 'darwin' ? 'Command+O' : 'Ctrl+O',
