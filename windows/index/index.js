@@ -59,6 +59,7 @@ function transanctioncolumns(){
             columncost.forEach(item => {
                 const row = document.createElement('div')
                 row.className = 'row col s12'
+                // row.className = 'row'
                 row.style.marginBottom = '-20px'
                 const rowdiv = document.createElement('div')
                 rowdiv.className = 'input-field col s5'
@@ -247,11 +248,18 @@ function transanctioncolumns(){
 
             ipcRenderer.send('transact:add', JSON.stringify(transact))
         }
+
+        // close modal
+        const modal = M.Modal.getInstance(document.querySelector('div#modal-addtransact'))
+        modal.close()
+
         e.preventDefault()
     })
 }
 
-// function to clear table
+/**
+ * @description Function to clear transaction table content
+ */
 function tableclearcontent() {
     const thead = document.querySelector('thead#transaction-table-head')
     const tbody = document.querySelector('tbody#transaction-table-body')
@@ -259,7 +267,9 @@ function tableclearcontent() {
     tbody.innerHTML = ''
 }
 
-// function to add an item in the table
+/**
+ * @description Function to add a single transaction in the table
+ */
 function tableadd(column_item) {
     const tbody = document.querySelector('tbody#transaction-table-body')
     tr = document.createElement('tr')
@@ -285,6 +295,7 @@ function tableadd(column_item) {
         })
     })
 
+    let incrementcolumn = 0
     // columns
     transactarr.forEach(itemt => {
         td = document.createElement('td')
@@ -294,14 +305,25 @@ function tableadd(column_item) {
 
         if (itemt.type === 'cost') {
             td.className = 'tooltipped'
-            td.setAttribute('data-position', 'top')
+            td.setAttribute('data-position', 'right')
             td.setAttribute('data-tooltip', 'qty: ' + itemt.value.quantity)
         }
         td.appendChild(text)
         tr.appendChild(td)
+
+        incrementcolumn += 1
     })
 
     // total
+    const totalelem = document.querySelector('th[column-code="total"]')
+    // increase increment by 1 to represent column
+    incrementcolumn += 1
+    while (incrementcolumn != parseInt(totalelem.getAttribute('column-index'))) {
+        td = document.createElement('td')
+        td.innerHTML = ''
+        tr.appendChild(td)
+        incrementcolumn += 1
+    }
     td = document.createElement('td')
     text = document.createTextNode(column_item.total)
     td.appendChild(text) 
@@ -313,7 +335,9 @@ function tableadd(column_item) {
     M.Tooltip.init(elems)
 }
 
-// function for 
+/**
+ * @description Table to fill transaction table head
+ */
 function transactiontable() {
     const thead = document.querySelector('thead#transaction-table-head')
     let columns = [
@@ -364,6 +388,11 @@ function transactiontable() {
 }
 
 document.addEventListener('DOMContentLoaded', e => {
+    // Matrialize initialize
+    // modal
+    M.Modal.init(document.querySelectorAll('.modal'))
+
+
     appsettings = remote.getCurrentWindow().appsettings
     getAppSettings(appsettings)
     transanctioncolumns()
