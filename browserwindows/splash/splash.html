@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="../../node_modules/materialize-css/dist/css/materialize.min.css">
+    <style>
+    .loader {
+        position: absolute;
+        top :0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        margin: auto;
+    }
+    body {
+        overflow-x: hidden;
+    }
+    ::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+    <div class="preloader-wrapper big active loader">
+        <div class="spinner-layer spinner-blue-only">
+            <div class="circle-clipper left">
+                <div class="circle"></div>
+                </div><div class="gap-patch">
+                <div class="circle"></div>
+                </div><div class="circle-clipper right">
+                <div class="circle"></div>
+            </div>
+        </div>
+    </div>
+    <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+    <script src="../../node_modules/materialize-css/dist/js/materialize.min.js"></script>
+    <script>if (window.module) module = window.module;</script>
+</body>
+</html>
