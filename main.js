@@ -13,19 +13,48 @@ const localfolder = 'POSManager2'
 process.env.NODE_ENV = 'development'
 let windowMain
 let windowSettings
+let splashScreen
 let currentSavePath = null
 
 global.globalappsettings = {}
 global.apptransactions = []
 
+/**
+ * @description Initialize
+ */
+function appInit() {
+    localapp.createLocalAppDataSync(localfolder)
+    const prevfile = localapp.getCurrentTransactionBook(localfolder)
+    if (prevfile != null) {
+        const filepath = prevfile[0]
+        const transactionbook = excel.openExcelSync(filepath)
+        const transaction = getfromExcel(transactionbook, 'Transactions')
+        const summaryreport = getfromExcel(transactionbook, 'Summary Report')
+        const columns = getfromExcel(transactionbook, 'Columns')
+        const apptransact = arrangeTransaction(transaction, summaryreport, columns)
+        columns.forEach(item => {
+            if (item.column_worn === 'Cost') item.column_price = parseFloat(item.column_price)
+        })
+        apptransactions = apptransact
+        localapp.updateColumnOnly(localfolder, columns, result => {
+            globalappsettings = result
+        })
 
-// Main window
+        // change save path
+        currentSavePath = filepath
+    }
+}
+
+/**
+ * @description Function to create the main window
+ */
 function createWindowMain(){
     windowMain = new BrowserWindow({
         'height' : 600,
         'width' : 1000,
         'minHeight' : 600,
-        'minWIdth' : 1000
+        'minWIdth' : 1000,
+        'show' : false
     })
 
     windowMain.loadURL(url.format({
@@ -45,22 +74,40 @@ function createWindowMain(){
     // all windows
     // Menu.setApplicationMenu(menu)
 
-    localapp.createLocalAppDataSync(localfolder)
     localapp.getColumnSetting(localfolder, (data) => {
         globalappsettings = data
         windowMain.appsettings = globalappsettings
     })
+    windowMain.once('ready-to-show', () => {
+        splashScreen.close()
+        windowMain.show()
+    })
 }
 
-function mainAppSettings(err, data) {
-    if (err) throw err
-    globalappsettings = data
-    windowMain.appsettings = globalappsettings
-    windowMain.webContents.send('user:settings', data)
+/**
+ * @description Function to create the splash screen window
+ */
+function createSplashScreen() {
+    splashScreen = new BrowserWindow({
+        frame : false,
+        resizable : false,
+        transparent : true,
+        width: 200, 
+        height: 400,
+    })
+    splashScreen.loadURL(url.format({
+        pathname : path.join(__dirname, 'browserwindows/splash/splash.html'),
+        protocol : 'file',
+        slashes : true
+    }))
+    splashScreen.on('closed', () => {
+        splashScreen = null
+    })
 }
 
-
-// Settings Window
+/**
+ * @description Function to create the column settings window
+ */
 function createSettingsWindow(){
     windowSettings = new BrowserWindow({
         title: 'User Settings'
@@ -79,6 +126,8 @@ function createSettingsWindow(){
 }
 
 app.on('ready', () => {
+    createSplashScreen()
+    appInit()
     createWindowMain()
 })
 
@@ -155,6 +204,58 @@ function saveAsFile(){
     })
 }
 
+const getfromExcel = (array, find) => array.filter(obj => obj[find])[0][find]
+
+/**
+ * @description arrange transaction to use for data
+ * @param {Array} transaction 
+ * @param {Object} summary 
+ * @param {Object} columns 
+ */
+function arrangeTransaction (transaction, summary, columns) {
+    const apptransaction = []
+    function buildsingletransaction (name, type, value) {
+        return {
+            name : name,
+            type : type,
+            value : value
+        }
+    }
+    transaction.forEach(item => {
+        const date = item['date_time']
+        let transactarr = []
+        let total = 0
+        for (key in item) {
+            if (key !== 'date_time'){
+                const foundcolumn = columns.find(obj => obj['column_id'] === key)
+                const name = key
+                const type = foundcolumn['column_worn'].toLowerCase()
+                let value
+                if (type === 'cost'){
+                    const foundsummary = summary.filter(obj => obj['prod_name'] === key)
+                    const valfromxl = parseFloat(item[key])
+                    const sumprice = foundsummary.find(obj => valfromxl % parseFloat(obj['prod_price']) == 0)
+                    const price = parseFloat(sumprice['prod_price'])
+                    const qty = valfromxl / price
+                    total += valfromxl
+                    value = {
+                        price : price,
+                        quantity : qty
+                    }
+                } else if (type === 'name'){
+                    value = item[key]
+                }
+                transactarr.push(buildsingletransaction(name, type, value))
+            }
+        }
+        apptransaction.push({
+            date : date,
+            transact : transactarr,
+            total : total
+        })
+    })
+    return apptransaction
+}
 
 // Menu Template
 const menuTemplate = [
@@ -168,14 +269,22 @@ const menuTemplate = [
                     const options = {
                         title : 'New Transaction Book',
                         filters : [
-                            {name : 'Excel Workbook', extensions : ['xlsx']}
-                        ],
-                        properties : ['openFile']
+                            {
+                                name : 'Excel Workbook',
+                                extensions : ['xlsx']
+                            }
+                        ]
                     }
-                    dialog.showOpenDialog(windowMain, options, (filename) => {
+                    dialog.showSaveDialog(windowMain, options, (filename) => {
                         if (filename !== undefined) {
-                            filename = filename[0]
-                            
+                            excel.saveNewExcel(filename, (file) => {
+                                localapp.setCurrentTransactionBook(localfolder, file, (err) => {
+                                    if (err) throw err
+                                    const f = localapp.getCurrentTransactionBook(localfolder)
+                                    app.relaunch({args: process.argv.slice(1).concat(['--relaunch'])})
+                                    app.exit(0)
+                                })
+                            })
                         }
                     })
                 }
@@ -184,52 +293,7 @@ const menuTemplate = [
                 label: 'Open File',
                 accelerator:process.platform === 'darwin' ? 'Command+O' : 'Ctrl+O',
                 click(){
-                    function arrangeTransaction (transaction, summary, columns) {
-                        const apptransaction = []
-                        function buildsingletransaction (name, type, value) {
-                            return {
-                                name : name,
-                                type : type,
-                                value : value
-                            }
-                        }
-                        transaction.forEach(item => {
-                            const date = item['date_time']
-                            let transactarr = []
-                            let total = 0
-                            for (key in item) {
-                                if (key !== 'date_time'){
-                                    const foundcolumn = columns.find(obj => obj['column_id'] === key)
-                                    const name = key
-                                    const type = foundcolumn['column_worn'].toLowerCase()
-                                    let value
-                                    if (type === 'cost'){
-                                        const foundsummary = summary.filter(obj => obj['prod_name'] === key)
-                                        const valfromxl = parseFloat(item[key])
-                                        const sumprice = foundsummary.find(obj => valfromxl % parseFloat(obj['prod_price']) == 0)
-                                        const price = parseFloat(sumprice['prod_price'])
-                                        const qty = valfromxl / price
-                                        total += valfromxl
-                                        value = {
-                                            price : price,
-                                            quantity : qty
-                                        }
-                                    } else if (type === 'name'){
-                                        value = item[key]
-                                    }
-                                    transactarr.push(buildsingletransaction(name, type, value))
-                                }
-                            }
-                            apptransaction.push({
-                                date : date,
-                                transact : transactarr,
-                                total : total
-                            })
-                        })
-                        return apptransaction
-                    }
                     
-                    const getfromExcel = (array, find) => array.filter(obj => obj[find])[0][find]
                     const options = {
                         title : 'Open Excel Workbook',
                         filters : [
@@ -242,18 +306,11 @@ const menuTemplate = [
                             filename = filename[0]
                             excel.openExcel(filename, (err, result) => {
                                 if (err) throw err
-                                const transaction = getfromExcel(result, 'Transactions')
-                                const summaryreport = getfromExcel(result, 'Summary Report')
-                                const columns = getfromExcel(result, 'Columns')
-                                const apptransact = arrangeTransaction(transaction, summaryreport, columns)
-                                columns.forEach(item => {
-                                    if (item.column_worn === 'Cost') item.column_price = parseFloat(item.column_price)
+                                localapp.setCurrentTransactionBook(localfolder, filename, () => {
+                                    if (err) throw err
+                                    app.relaunch({args: process.argv.slice(1).concat(['--relaunch'])})
+                                    app.exit(0)
                                 })
-                                // change global variables
-                                apptransactions = apptransact
-                                globalappsettings.columns = columns
-                                const title = filename.split('\\')[filename.split('\\').length - 1].replace('.xlsx', '')
-                                windowMain.webContents.send('transact:open', title)
                             })
                         }
                     })
@@ -263,19 +320,10 @@ const menuTemplate = [
                 label: 'Save',
                 accelerator:process.platform === 'darwin' ? 'Command+S' : 'Ctrl+S',
                 click(){
-
                     if (currentSavePath != null) {
                         // has saved file
-                        windowMain.webContents.executeJavaScript(`document.querySelector('input#work-title').value`, value => {
-                            const dir = currentSavePath.split('\\')
-                            const currenttitle = value + '.xlsx'
-                            if (dir[dir.length-1] === currenttitle) {
-                                excel.saveAsExcel(globalappsettings.columns, apptransactions, currentSavePath, (err) => {
-                                    if (err) throw err
-                                })
-                            } else {
-                                saveAsFile()
-                            }
+                        excel.saveAsExcel(globalappsettings.columns, apptransactions, currentSavePath, (err) => {
+                            if (err) throw err
                         })
                     } else {
                         // has no current saved file

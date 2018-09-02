@@ -15,14 +15,21 @@
             <a id="brand" href="#" class="brand-logo center">Laundry Manager</a>
         </div>
     </nav>
-    <div class="row">
-        <div class="col s1 right-align" style="padding-top: 20px">
+    <div class="row valign-wrapper col s12" style="padding: 10px">
+        <div class="col s1 center-align">
+            <a class="btn-floating pink waves-effect waves-light btn modal-trigger tooltipped" data-position="right" data-tooltip="Add New Transaction" href="#modal-addtransact"><i class="material-icons">add</i></a>
+        </div>
+        <div class="col s11">
+
+        </div>
+        <div class="col s1 right-align" style="display: none">
             <h6>Title</h6>
         </div>
-        <div class="input-field col s5">
+        <div class="col s10 input-field" style="display: none">
             <input type="text" id="work-title">
             <label for="work-title">Work Title</label>
         </div>
+
     </div>
     <div class="row">
         <!-- <div class="col s4">
@@ -31,7 +38,7 @@
 
             </div>
         </div> -->
-        <div class="col s8">
+        <div class="col s12">
             <div id="transaction-table">
                 <table class="centered">
                     <thead id="transaction-table-head">
@@ -54,6 +61,24 @@
             <li><a class="btn-floating blue"><i class="material-icons">attach_file</i></a></li>
         </ul>
     </div>
+
+    <!-- modal -->
+    <div id="modal-addtransact" class="modal">
+        <div class="modal-content">
+            <div class="row">
+                <div class="col s12">
+                    <h5>Add transaction</h5>
+                    <div id="transaction-columns">
+        
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- <div class="modal-footer">
+
+        </div> -->
+    </div>
+
     <!-- scripts -->
     <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
     <script src="../../node_modules/materialize-css/dist/js/materialize.min.js"></script>

@@ -4,7 +4,10 @@ const {ipcRenderer, remote} = electron
 let appsettings
 let transactiontablecolumns
 
-// function to change title of application
+/**
+ * @description Function to change the title of the application
+ * @param {Object} data 
+ */
 function getAppSettings(data){
     if (typeof data.appname !== 'undefined') {
         const brand = document.querySelector('a#brand')
@@ -13,7 +16,9 @@ function getAppSettings(data){
     }
 }
 
-// function to load customized columns
+/**
+ * @description Function to load customized columns
+ */
 function transanctioncolumns(){
     const divcolumn = document.querySelector('div#transaction-columns')
     divcolumn.innerHTML = ''
@@ -143,7 +148,7 @@ function transanctioncolumns(){
             a.href = '#'
             a.className = 'waves-effect waves-teal btn-flat'
             a.style.margin = '0px 5px'
-            a.innerHTML = 'Clear'
+            a.innerHTML = 'Cancel'
             divright.appendChild(a)
             // add
             a = document.createElement('a')
@@ -203,6 +208,9 @@ function transanctioncolumns(){
         priceinit.forEach(item => item.innerHTML = '0')
         computetotal()
         M.updateTextFields()
+        // close modal
+        const modal = M.Modal.getInstance(document.querySelector('div#modal-addtransact'))
+        modal.close()
         e.preventDefault()
     })
     addaddtransaction.addEventListener('click', e => {
@@ -246,12 +254,17 @@ function transanctioncolumns(){
             M.updateTextFields()
 
             ipcRenderer.send('transact:add', JSON.stringify(transact))
+            // close modal
+            const modal = M.Modal.getInstance(document.querySelector('div#modal-addtransact'))
+            modal.close()
         }
         e.preventDefault()
     })
 }
 
-// function to clear table
+/**
+ * @description function to clear table content
+ */
 function tableclearcontent() {
     const thead = document.querySelector('thead#transaction-table-head')
     const tbody = document.querySelector('tbody#transaction-table-body')
@@ -259,16 +272,22 @@ function tableclearcontent() {
     tbody.innerHTML = ''
 }
 
-// function to add an item in the table
+/**
+ * @description Function to a single item in the table
+ * @param {Object} column_item 
+ */
 function tableadd(column_item) {
     const tbody = document.querySelector('tbody#transaction-table-body')
     tr = document.createElement('tr')
+    let incrementcolumn = 0
     // date
     let td = document.createElement('td')
     const date = dateformat(column_item.date, 'mmm dd, yy - hh:MM:ss TT')
     let text = document.createTextNode(date)
     td.appendChild(text)
     tr.appendChild(td)
+    // increment by 1
+    incrementcolumn += 1
 
     const thead = document.querySelector('thead#transaction-table-head')
     const th = thead.querySelectorAll('th')
@@ -294,14 +313,24 @@ function tableadd(column_item) {
 
         if (itemt.type === 'cost') {
             td.className = 'tooltipped'
-            td.setAttribute('data-position', 'top')
+            td.setAttribute('data-position', 'right')
             td.setAttribute('data-tooltip', 'qty: ' + itemt.value.quantity)
         }
         td.appendChild(text)
         tr.appendChild(td)
+
+        incrementcolumn += 1
     })
 
     // total
+    const totalelem = document.querySelector('th[column-code="total"]')
+    // increment by 1 to represent column
+    while (incrementcolumn != parseInt(totalelem.getAttribute('column-index'))) {
+        td = document.createElement('td')
+        td.innerHTML = ''
+        tr.appendChild(td)
+        incrementcolumn += 1
+    }
     td = document.createElement('td')
     text = document.createTextNode(column_item.total)
     td.appendChild(text) 
@@ -310,10 +339,15 @@ function tableadd(column_item) {
     
     // Materialize initialize
     const elems = document.querySelectorAll('.tooltipped')
-    M.Tooltip.init(elems)
+    const tooltipoptions = {
+        enterDelay : 1000
+    }
+    M.Tooltip.init(elems, tooltipoptions)
 }
 
-// function for 
+/**
+ * @description Function to initialize transaction table
+ */
 function transactiontable() {
     const thead = document.querySelector('thead#transaction-table-head')
     let columns = [
@@ -360,11 +394,19 @@ function transactiontable() {
 
     // Materialize initialize
     const elems = document.querySelectorAll('.tooltipped')
-    M.Tooltip.init(elems)
+    const tooltipoptions = {
+        enterDelay : 1000
+    }
+    M.Tooltip.init(elems, tooltipoptions)
 }
 
 document.addEventListener('DOMContentLoaded', e => {
     appsettings = remote.getCurrentWindow().appsettings
+
+    // Matrialize initialize
+    // modal
+    M.Modal.init(document.querySelectorAll('.modal'))
+
     getAppSettings(appsettings)
     transanctioncolumns()
     tableclearcontent()

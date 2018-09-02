@@ -206,6 +206,12 @@ function funcopenExcel(filename) {
     return excelsheets
 }
 
+/**
+ * @async
+ * @description Function to open excel file
+ * @param {String} filename 
+ * @param {Function} callback 
+ */
 const openExcel = async (filename, callback) => {
     try {
         const result = await new Promise(resolve => {
@@ -217,7 +223,47 @@ const openExcel = async (filename, callback) => {
     }
 }
 
+/**
+ * @returns {Array}
+ * @description Synchronous function to open excel file
+ * @param {String} filename 
+ */
+const openExcelSync = (filename) => {
+    const workbook = xlsx.readFile(filename)
+    const sheet_name_list = workbook.SheetNames
+    let excelsheets = []
+    sheet_name_list.forEach(item => {
+        let sheetobj = {}
+        sheetobj[item] = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name_list[sheet_name_list.indexOf(item)]])
+        excelsheets.push(sheetobj)
+    })
+    return excelsheets
+}
+
+/**
+ * @description Function to save a new excel as transaction book
+ * @param {String} filename 
+ * @param {Function} callback
+ */
+const saveNewExcel = (filename, callback) => {
+    const wb = new xl.Workbook()
+
+    // worksheets
+    const ws1 = wb.addWorksheet('Transactions')
+    const ws2 = wb.addWorksheet('Summary Report')
+    const ws3 = wb.addWorksheet('Columns')
+    const ws4 = wb.addWorksheet('Customer')
+
+    wb.write(filename)
+    setTimeout(() => {
+        callback(filename)
+    }, 500)
+    
+}
+
 module.exports = {
     saveAsExcel : saveAsExcel,
-    openExcel : openExcel
+    openExcel : openExcel,
+    openExcelSync : openExcelSync,
+    saveNewExcel : saveNewExcel
 }
