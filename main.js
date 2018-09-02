@@ -6,6 +6,7 @@ const excel = require('./functions/excel')
 const localapp = require('./functions/localapp')
 
 const {app, BrowserWindow, Menu, dialog, ipcMain} = electron
+app.showExitPrompt = true
 
 const localfolder = 'POSManager2'
 
@@ -18,6 +19,8 @@ let currentSavePath = null
 
 global.globalappsettings = {}
 global.apptransactions = []
+
+global.unsavedchanges = []
 
 /**
  * @description Initialize
@@ -63,8 +66,36 @@ function createWindowMain(){
         slashes : true
     }))
 
-    windowMain.on('closed', () => {
-        app.quit()
+    windowMain.on('close', (e) => {
+        if (unsavedchanges.length > 0) {
+            // https://github.com/electron/electron/issues/2301
+            // handle if there are unsaved changes
+            if (app.showExitPrompt) {
+                e.preventDefault()
+                const buttons = ['Yes', 'No', 'Cancel']
+                dialog.showMessageBox(windowMain, {
+                    options: ['question'],
+                    title: 'Unsaved changes',
+                    message: 'Do you want to save your unsaved changes before exit?',
+                    buttons: buttons
+                }, response => {
+                    if (buttons[response] === 'Yes') {
+                        // save
+                        windowMain.hide()
+                        excel.saveAsExcel(globalappsettings.columns, apptransactions, currentSavePath, (err) => {
+                            if (err) throw err
+                            setTimeout(() => {
+                                app.showExitPrompt = false
+                                windowMain.close()
+                            }, 1000)
+                        })
+                    } else if (buttons[response] === 'No') {
+                        app.showExitPrompt = false
+                        windowMain.close()
+                    }
+                })
+            }
+        }
     })
 
     const menu = Menu.buildFromTemplate(menuTemplate)
@@ -100,7 +131,7 @@ function createSplashScreen() {
         protocol : 'file',
         slashes : true
     }))
-    splashScreen.on('closed', () => {
+    splashScreen.on('close', () => {
         splashScreen = null
     })
 }
@@ -132,15 +163,15 @@ app.on('ready', () => {
 })
 
 app.on('window-all-closed', () => {
-    if (process.platform) {
+    if(process.platform != 'darwin')
         app.quit()
-    }
 })
 
 /**
  * ipcMain
  */
 ipcMain.on('settings:update', (err, item) => {
+    unsavedchanges.push('updated settings')
     itemupdate = JSON.parse(item)
     localapp.updateColumnSetting(localfolder, itemupdate, (data) => {
         globalappsettings = data
@@ -158,6 +189,7 @@ ipcMain.on('settings:cancel', (err, item) => {
 
 ipcMain.on('transact:add', (err, item) => {
     // load from index.html is stringified
+    unsavedchanges.push('added transaction')
     const load = JSON.parse(item)
     const transaction = buildtransaction(dateformat(new Date(), 'yyyy-mm-dd HH:MM:ss'), load)
     console.log(transaction)
@@ -322,9 +354,12 @@ const menuTemplate = [
                 click(){
                     if (currentSavePath != null) {
                         // has saved file
-                        excel.saveAsExcel(globalappsettings.columns, apptransactions, currentSavePath, (err) => {
-                            if (err) throw err
-                        })
+                        if (unsavedchanges.length > 0) {
+                            unsavedchanges = []
+                            excel.saveAsExcel(globalappsettings.columns, apptransactions, currentSavePath, (err) => {
+                                if (err) throw err
+                            })
+                        }
                     } else {
                         // has no current saved file
                         saveAsFile()
