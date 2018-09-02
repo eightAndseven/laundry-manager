@@ -12,6 +12,7 @@ const localfolder = 'POSManager2'
 
 // Global variable
 process.env.NODE_ENV = 'development'
+let windowInit
 let windowMain
 let windowSettings
 let splashScreen
@@ -29,6 +30,7 @@ function appInit() {
     localapp.createLocalAppDataSync(localfolder)
     const prevfile = localapp.getCurrentTransactionBook(localfolder)
     if (prevfile != null) {
+        createSplashScreen()
         const filepath = prevfile[0]
         const transactionbook = excel.openExcelSync(filepath)
         const transaction = getfromExcel(transactionbook, 'Transactions')
@@ -45,8 +47,40 @@ function appInit() {
 
         // change save path
         currentSavePath = filepath
+        createWindowMain()
+    } else {
+        createWindowInit()
     }
 }
+
+/**
+ * @description Function to create the init window
+ */
+function createWindowInit() {
+    windowInit = new BrowserWindow({
+        height : 400,
+        width : 600,
+        resizable : false,
+        show : false
+    })
+
+    windowInit.loadURL(url.format({
+        pathname : path.join(__dirname, 'browserwindows/init/init.html'),
+        protocol : 'file',
+        slashes : true
+    }))
+
+    windowInit.on('close', () => {
+        windowInit = null
+    })
+
+    windowInit.setMenu(null)
+
+    windowInit.once('ready-to-show', () => {
+        windowInit.show()
+    })
+}
+
 
 /**
  * @description Function to create the main window
@@ -157,9 +191,7 @@ function createSettingsWindow(){
 }
 
 app.on('ready', () => {
-    createSplashScreen()
     appInit()
-    createWindowMain()
 })
 
 app.on('window-all-closed', () => {
@@ -192,10 +224,17 @@ ipcMain.on('transact:add', (err, item) => {
     unsavedchanges.push('added transaction')
     const load = JSON.parse(item)
     const transaction = buildtransaction(dateformat(new Date(), 'yyyy-mm-dd HH:MM:ss'), load)
-    console.log(transaction)
     apptransactions.push(transaction)
     
     windowMain.webContents.send('table:add', JSON.stringify(transaction))
+})
+
+ipcMain.on('init:new', (err, item) => {
+    dialogNewTransactionBook(windowInit)
+})
+
+ipcMain.on('init:open', (err, item) => {
+    dialogOpenTransactionBook(windowInit)
 })
 
 // function to build transaction
@@ -226,12 +265,12 @@ function saveAsFile(){
         }
         dialog.showSaveDialog(windowMain, options, (filename) => {
             if (filename !== undefined) {
+                unsavedchanges = []
                 excel.saveAsExcel(globalappsettings.columns, apptransactions, filename, (err) => {
                     if (err) throw err
                 })
                 currentSavePath = filename
             }
-            console.log('Saved in ' + filename)
         })
     })
 }
@@ -289,6 +328,62 @@ function arrangeTransaction (transaction, summary, columns) {
     return apptransaction
 }
 
+/**
+ * @description Function to open dialog box for new transaction book
+ * @param {BrowserWindow} windoww
+ */
+function dialogNewTransactionBook(windoww) {
+    const options = {
+        title : 'New Transaction Book',
+        filters : [
+            {
+                name : 'Excel Workbook',
+                extensions : ['xlsx']
+            }
+        ]
+    }
+    dialog.showSaveDialog(windoww, options, (filename) => {
+        if (filename !== undefined) {
+            excel.saveNewExcel(filename, (file) => {
+                localapp.setCurrentTransactionBook(localfolder, file, (err) => {
+                    if (err) throw err
+                    const f = localapp.getCurrentTransactionBook(localfolder)
+                    app.relaunch({args: process.argv.slice(1).concat(['--relaunch'])})
+                    app.exit(0)
+                })
+            })
+        }
+    })
+}
+
+/**
+ * @description Function to open dialog box to open a transaction book
+ * @param {BrowserWindow} windoww 
+ */
+function dialogOpenTransactionBook(windoww) {
+    const options = {
+        title : 'Open Excel Workbook',
+        filters : [
+            {name : 'Excel Workbook', extensions : ['xlsx']}
+        ],
+        properties : ['openFile']
+    }
+    dialog.showOpenDialog(windoww, options, (filename) => {
+        if (filename !== undefined) {
+            filename = filename[0]
+            excel.openExcel(filename, (err, result) => {
+                if (err) throw err
+                localapp.setCurrentTransactionBook(localfolder, filename, () => {
+                    if (err) throw err
+                    app.relaunch({args: process.argv.slice(1).concat(['--relaunch'])})
+                    app.exit(0)
+                })
+            })
+        }
+    })
+}
+
+
 // Menu Template
 const menuTemplate = [
     {
@@ -298,54 +393,14 @@ const menuTemplate = [
                 label: 'New Transaction Book',
                 accelerator: process.platform === 'darwin' ? 'Command+N' : 'Ctrl+N',
                 click() {
-                    const options = {
-                        title : 'New Transaction Book',
-                        filters : [
-                            {
-                                name : 'Excel Workbook',
-                                extensions : ['xlsx']
-                            }
-                        ]
-                    }
-                    dialog.showSaveDialog(windowMain, options, (filename) => {
-                        if (filename !== undefined) {
-                            excel.saveNewExcel(filename, (file) => {
-                                localapp.setCurrentTransactionBook(localfolder, file, (err) => {
-                                    if (err) throw err
-                                    const f = localapp.getCurrentTransactionBook(localfolder)
-                                    app.relaunch({args: process.argv.slice(1).concat(['--relaunch'])})
-                                    app.exit(0)
-                                })
-                            })
-                        }
-                    })
+                    dialogNewTransactionBook(windowMain)
                 }
             },
             {
                 label: 'Open File',
                 accelerator:process.platform === 'darwin' ? 'Command+O' : 'Ctrl+O',
                 click(){
-                    
-                    const options = {
-                        title : 'Open Excel Workbook',
-                        filters : [
-                            {name : 'Excel Workbook', extensions : ['xlsx']}
-                        ],
-                        properties : ['openFile']
-                    }
-                    dialog.showOpenDialog(windowMain, options, (filename) => {
-                        if (filename !== undefined) {
-                            filename = filename[0]
-                            excel.openExcel(filename, (err, result) => {
-                                if (err) throw err
-                                localapp.setCurrentTransactionBook(localfolder, filename, () => {
-                                    if (err) throw err
-                                    app.relaunch({args: process.argv.slice(1).concat(['--relaunch'])})
-                                    app.exit(0)
-                                })
-                            })
-                        }
-                    })
+                    dialogOpenTransactionBook(windowMain)
                 }
             },
             {

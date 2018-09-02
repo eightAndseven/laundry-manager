@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>POS Manager</title>
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="../../node_modules/materialize-css/dist/css/materialize.min.css">
+</head>
+<body>
+
+<div class="container" style="padding: 65px">
+    <div class="section center-align">
+        <div>
+            <a id="new-transaction-book" href="#" class="waves-effect waves-light btn-large">NEW TRANSACTION BOOK</a>
+        </div>
+    </div>
+    <div class="divider"></div>
+    <div class="section center-align">
+        <div>
+            <a id="open-transaction-book" href="#" class="waves-effect waves-light btn-large">OPEN TRANSACTION BOOK</a>
+        </div>
+    </div>
+</div>
+
+    <!-- scripts -->
+    <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+    <script src="../../node_modules/materialize-css/dist/js/materialize.min.js"></script>
+    <script>if (window.module) module = window.module;</script>
+    <script>
+        const {ipcRenderer, remote} = require('electron')
+
+        const newtransactionbook = document.querySelector('a#new-transaction-book')
+        const opentransactionbook = document.querySelector('a#open-transaction-book')
+
+        newtransactionbook.addEventListener('click', (e) => {
+            e.preventDefault()
+            ipcRenderer.send('init:new', '')
+        })
+
+        opentransactionbook.addEventListener('click', (e) => {
+            e.preventDefault()
+            ipcRenderer.send('init:open', '')
+        })
+    </script>
+</body>
+</html>
