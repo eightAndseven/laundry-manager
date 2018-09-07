@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Customer Page</title>
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="../../node_modules/materialize-css/dist/css/materialize.min.css">
+</head>
+<body>
+    <div class="row" style="padding: 20px;">
+        <div class="col s6">
+            <h5>Customer Setting</h5>
+            <div style="padding:10px 0px" class="center-align">
+                <p>Currently <span id="cust-status"></span></p>
+                <a href="#" id="customer-activate" class="btn waves-effect waves-light">activate</a>
+            </div>
+            <h5>Add Customer</h5>
+            <form id="form-add-cust" style="padding: 0px 10px;">
+                <div class="row">
+                    <div class="input-field">
+                        <input type="text" id="add-cust-name">
+                        <label for="add-cust-name">Customer Name</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field">
+                        <textarea class="materialize-textarea" id="add-cust-desc"></textarea>
+                        <label for="add-cust-desc">Customer Description</label>
+                    </div>
+                </div>
+                <div class="row right-align">
+                    <a href="#" id="add-cust-clear" class="waves-effect waves-teal btn-flat" style="margin: 0px 5px">Clear</a>
+                    <a href="#" id="add-cust-btn" class="waves-effect waves-light btn" style="margin: 0px 5px">Add</a>
+                </div>
+            </form>
+        </div>
+        <div class="col s6" >
+            <h5>Customer List</h5>
+            <div class="input-field">
+                <i class="material-icons prefix">search</i>
+                <input type="text" id="search-cust">
+                <label for="search-cust">Search</label>
+            </div>
+            <div style="height: 350px; overflow-y: scroll">
+                <div id="cust-collection" class="collection">
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <!-- Modal Structure -->
+    <div id="cust-modal" class="modal">
+        <div class="modal-content">
+            <h4>Customer Details <a id="cust-modal-delete" href="#" class="red-text tooltipped" data-position="right" data-tooltip="delete customer"><i class="material-icons">delete</i></a></h4>
+            <p>ID : <span id="cust-modal-id"></span></p>
+            <p>Name : <span id="cust-modal-name"></span></p>
+            <p>Description : <span id="cust-modal-desc"></span></p>
+            <p>Number of orders : <span id="cust-modal-norders"></span></p>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-close waves-effect waves-green btn-flat">close</a>
+        </div>
+    </div>
+
+
+    <!-- scripts -->
+    <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+    <script src="../../node_modules/materialize-css/dist/js/materialize.min.js"></script>
+    <script>if (window.module) module = window.module;</script>
+    <script>
+
+const {ipcRenderer, remote} = require('electron')
+const dateformat = require('dateformat')
+let customersettings = remote.getGlobal('customersetting')
+
+// Events
+const formaddcust = document.querySelector('form#form-add-cust')
+
+// anchor
+const addcustbtn = document.querySelector('a#add-cust-btn')
+const addcustclr = document.querySelector('a#add-cust-clear')
+const custactivate = document.querySelector('a#customer-activate')
+
+// inputs
+const inputsearch = document.querySelector('input#search-cust')
+
+formaddcust.addEventListener('submit', e => {
+    e.preventDefault()
+})
+
+addcustbtn.addEventListener('click', e => {
+    e.preventDefault()
+
+    // get input texts
+    const custname = document.querySelector('input#add-cust-name')
+    const custdesc = document.querySelector('textarea#add-cust-desc')
+
+    if (custname !== '' && custdesc !== '') {
+        const custobj = {
+            id : parseInt(dateformat(new Date(), 'yyyymmddHHMMss')),
+            name : custname.value,
+            desc : custdesc.value,
+            order : []
+        }
+
+        // send to ipcmain
+        ipcRenderer.send('customer:add', JSON.stringify(custobj))
+
+        custname.value = ''
+        custdesc.value = ''
+        M.updateTextFields()
+    }
+})
+
+addcustclr.addEventListener('click', e => {
+    e.preventDefault()
+    const custname = document.querySelector('input#add-cust-name')
+    const custdesc = document.querySelector('textarea#add-cust-desc')
+    custname.value = ''
+    custdesc.value = ''
+    M.updateTextFields()
+})
+
+custactivate.addEventListener('click', e => {
+    e.preventDefault()
+    const status = typeof customersettings.activated !== 'undefined' && customersettings.activated
+        ? true
+        : false
+    custactivate.disabled = true
+    ipcRenderer.send('customer:activate', !status)
+})
+
+inputsearch.addEventListener('keyup', e => {
+    const val = e.target.value
+    if (e.target.value !== '') {
+        const acollection = document.querySelectorAll('a.cust-collection')
+        acollection.forEach(item => {
+            const itemname = item.innerHTML
+            if (itemname.toLowerCase().includes(val.toLowerCase())) {
+                item.style.display = 'block'
+            } else {
+                item.style.display = 'none'
+            }
+        })
+    } else {
+        const acollection = document.querySelectorAll('a.cust-collection')
+        acollection.forEach(item => {
+            item.style.display = 'block'
+        })
+    }
+})
+
+
+function custcollectiontoppush(item) {
+    const custcollection = document.querySelector('div#cust-collection')
+    const a = document.createElement('a')
+    a.id = item.id
+    a.href = '#!'
+    a.className = 'collection-item tooltipped cust-collection'
+    a.setAttribute('data-position', 'left')
+    a.setAttribute('data-tooltip', item.desc)
+    const text = document.createTextNode(item.name)
+    a.appendChild(text)
+
+    // event listener
+    a.addEventListener('dblclick', e => {
+        e.preventDefault()
+        let span = document.querySelector('span#cust-modal-id')
+        span.innerHTML = ''
+        let text = document.createTextNode(item.id)
+        span.appendChild(text)
+        span = document.querySelector('span#cust-modal-name')
+        span.innerHTML = ''
+        text = document.createTextNode(item.name)
+        span.appendChild(text)
+        span = document.querySelector('span#cust-modal-desc')
+        span.innerHTML = ''
+        text = document.createTextNode(item.desc)
+        span.appendChild(text)
+        span = document.querySelector('span#cust-modal-norders')
+        span.innerHTML = ''
+        text = document.createTextNode(item.order.length)
+        span.appendChild(text)
+        const modalinstance = M.Modal.getInstance(document.querySelector('div#cust-modal'))
+        modalinstance.open()
+
+        // delete customer
+        const deletecustomer = document.querySelector('a#cust-modal-delete')
+        deletecustomer.setAttribute('del-cust', item.id)
+        deletecustomer.addEventListener('click', e => {
+            e.preventDefault()
+            const id = parseInt(e.path[1].getAttribute('del-cust'))
+            const modalinstance = M.Modal.getInstance(document.querySelector('div#cust-modal'))
+            modalinstance.close()
+            ipcRenderer.send('customer:delete', id)
+        })
+    })
+
+    custcollection.insertBefore(a, custcollection.childNodes[0])
+}
+
+
+function customerstatus() {
+    // activate button
+    const custstatus = document.querySelector('span#cust-status')
+    custstatus.innerHTML = ''
+    if (typeof customersettings.activated !== 'undefined' && customersettings.activated) {
+        const text = document.createTextNode('ACTIVATED')
+        custstatus.style.fontWeight = 'bold'
+        custstatus.className = 'green-text'
+        custstatus.appendChild(text)
+        custactivate.innerHTML = 'deactivate'
+    } else {
+        const text = document.createTextNode('DEACTIVATED')
+        custstatus.style.fontWeight = 'bold'
+        custstatus.className = 'red-text'
+        custstatus.appendChild(text)
+        custactivate.innerHTML = 'activate'
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    const customerlist = customersettings.list
+    customerlist.forEach(custcollectiontoppush)
+    customerstatus()
+
+    // Materialize init
+    M.Tooltip.init(document.querySelectorAll('.tooltipped'), {enterDelay : 500})
+    M.Modal.init(document.querySelectorAll('.modal'))
+})
+
+ipcRenderer.on('customer:added', (err, item) => {
+    custcollectiontoppush(JSON.parse(item))
+    M.Tooltip.init(document.querySelectorAll('.tooltipped'), {enterDelay : 500})
+})
+
+ipcRenderer.on('customer:activated', (err, item) => {
+    customerstatus()
+})
+
+ipcRenderer.on('customer:deleted', (err, item) => {
+    const custcollection = document.querySelector('div#cust-collection')
+    custcollection.innerHTML = ''
+    const customerlist = customersettings.list
+    customerlist.forEach(custcollectiontoppush)
+    customerstatus()
+})
+
+    </script>
+</body>
+</html>

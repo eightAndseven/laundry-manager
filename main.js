@@ -15,11 +15,13 @@ process.env.NODE_ENV = 'development'
 let windowInit
 let windowMain
 let windowSettings
+let windowCustomer
 let splashScreen
 let currentSavePath = null
 
 global.globalappsettings = {}
 global.apptransactions = []
+global.customersetting = {}
 
 global.unsavedchanges = []
 
@@ -47,6 +49,11 @@ function appInit() {
 
         // change save path
         currentSavePath = filepath
+        
+        // local customer setting
+        localapp.getCustomerSetting(localfolder, result => {
+            customersetting = result
+        })
         createWindowMain()
     } else {
         createWindowInit()
@@ -175,7 +182,8 @@ function createSplashScreen() {
  */
 function createSettingsWindow(){
     windowSettings = new BrowserWindow({
-        title: 'User Settings'
+        title: 'User Settings',
+        resizable : false
     })
     windowSettings.loadURL(url.format({
         pathname: path.join(__dirname, 'browserwindows/column-settings/settings.html'),
@@ -188,6 +196,21 @@ function createSettingsWindow(){
     windowSettings.appsettings = JSON.stringify(globalappsettings)
     // set menu to null
     windowSettings.setMenu(null)
+}
+
+function createWindowCustomer() {
+    windowCustomer = new BrowserWindow({
+        title : 'Customer Page',
+        resizable : false
+    })
+    windowCustomer.loadURL(url.format({
+        pathname : path.join(__dirname, 'browserwindows/customer/customer.html'),
+        protocol : 'file:',
+        slashes : true
+    }))
+    windowCustomer.on('close', () => {
+        windowCustomer = null
+    })
 }
 
 app.on('ready', () => {
@@ -224,6 +247,10 @@ ipcMain.on('transact:add', (err, item) => {
     unsavedchanges.push('added transaction')
     const load = JSON.parse(item)
     const transaction = buildtransaction(dateformat(new Date(), 'yyyy-mm-dd HH:MM:ss'), load)
+    if (typeof transaction.customer !== 'undefined') {
+        customerorderincrement(transaction)
+    }
+    
     apptransactions.push(transaction)
     
     windowMain.webContents.send('table:add', JSON.stringify(transaction))
@@ -237,16 +264,73 @@ ipcMain.on('init:open', (err, item) => {
     dialogOpenTransactionBook(windowInit)
 })
 
+
+// Customer page
+ipcMain.on('customer:add', (err, item) => {
+    // load from ipcRenderer is stringified
+    const obj = JSON.parse(item)
+    customersetting.list.push(obj)
+    localapp.updateCustomerSetting(localfolder, customersetting, data => {
+        windowCustomer.webContents.send('customer:added', JSON.stringify(obj))
+    })
+})
+
+ipcMain.on('customer:activate', (err, item) => {
+    // load from ipcRenderer is boolean
+    customersetting.activated = item
+    localapp.updateCustomerSetting(localfolder, customersetting, data => {
+        windowCustomer.webContents.send('customer:activated', item)
+        windowMain.webContents.send('transact:reset', true)
+    })
+})
+
+ipcMain.on('customer:delete', (err, item) => {
+    const l = customersetting.list
+    for(i in l) {
+        if (l[i].id == item) {
+            customersetting.list.splice(i, 1)
+            break
+        }
+    }
+    localapp.updateCustomerSetting(localfolder, customersetting, data => {
+        windowCustomer.webContents.send('customer:deleted', item)
+    })
+})
+
 // function to build transaction
 function buildtransaction (date, load) {
     let total = 0
-    load.forEach(item => {
+    load.transact.forEach(item => {
         if (item.type === 'cost') total += (item.value.price * item.value.quantity)
     })
-    return {
-        date : date,
-        transact : load,
-        total : total
+    if (typeof load.customer === 'undefined') {
+        return {
+            date : date,
+            transact : load.transact,
+            total : total
+        }
+    } else {
+        return {
+            date : date,
+            customer : load.customer,
+            transact : load.transact,
+            total : total
+        }
+    }
+
+}
+
+/**
+ * @description Function to increment the order of customer
+ */
+function customerorderincrement(transaction) {
+    transaction.customer.norder += 1
+    for (i in customersetting.list) {
+        if (customersetting.list[i].id == transaction.customer.id) {
+            customersetting.list[i].order.push(transaction.date)
+            localapp.updateCustomerSetting(localfolder, customersetting, data => {})
+            break
+        }
     }
 }
 
@@ -451,10 +535,17 @@ const menuTemplate = [
         label: 'Settings',
         submenu: [
             {
-                label: 'Open Settings',
+                label: 'Customize Columns',
                 accelerator:process.platform === 'darwin' ? 'Command+P' : 'Ctrl+P',
                 click(){
                     createSettingsWindow()
+                }
+            },
+            {
+                label : 'Customer Page',
+                accelerator : process.platform === 'darwin' ? 'Command+L' : 'Ctrl+L',
+                click() {
+                    createWindowCustomer()
                 }
             }
         ]

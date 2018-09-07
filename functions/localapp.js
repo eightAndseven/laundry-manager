@@ -4,6 +4,8 @@ const columnsettingname = 'columnsetting.json'
 
 const applicationsetting = 'settings.json'
 
+const customersetting = 'customers.json'
+
 /**
  * @description Function to create a folder in the User > AppData > Local
  * @param {Folder name of the Application} foldername 
@@ -19,6 +21,10 @@ const createLocalAppData = (foldername, callback) => {
         if (!fs.existsSync(settingspath)) {
             fs.writeFileSync(settingspath, JSON.stringify({}, null, 4))
         }
+        const customerpath = process.env.LOCALAPPDATA + '\\' + foldername + '\\' + customersetting
+        if (!fs.existsSync(customerpath)) {
+            fs.writeFileSync(customerpath, JSON.stringify({list:[]}, null, 4))
+        }
         if (typeof callback !== 'undefined') callback(null)
     } catch (err) {
         if (typeof callback !== 'undefined') callback(err)
@@ -27,7 +33,8 @@ const createLocalAppData = (foldername, callback) => {
 
 /**
  * @description Function to check settings in boot
- * @param {Function callback} callback 
+ * @param {String} foldername
+ * @param {Function} callback 
  */
 const getColumnSetting = (foldername, callback) => {
     
@@ -56,9 +63,9 @@ const getColumnSetting = (foldername, callback) => {
 
 /**
  * @description Function to update column setting
- * @param {Folder name of the application} foldername 
- * @param {Object data to update} data 
- * @param {Function callback} callback 
+ * @param {String} foldername 
+ * @param {Object} data 
+ * @param {Function} callback 
  */
 const updateColumnSetting = (foldername, settingupdate, callback) => {
     
@@ -127,7 +134,65 @@ const updateColumnOnly = (foldername, columns, callback) => {
     }
 }
 
+/**
+ * @async
+ * @description Function to get the customer setting from local app
+ * @param {String} foldername 
+ * @param {Function} callback 
+ */
+const getCustomerSetting = (foldername, callback) => {
+    const jsonpath = process.env.LOCALAPPDATA + '\\' + foldername + '\\' + customersetting
 
+    function getFile(err) {
+        if (err) throw err
+        fs.readFile(jsonpath, (err, data) => {
+            callback(JSON.parse(data))
+        })
+    }
+    // check if json exists
+    if (!fs.existsSync(jsonpath)) {
+        const custobj = {
+            list : []
+        }
+        fs.writeFile(jsonpath, JSON.stringify(custobj, null, 4), getFile)
+    } else {
+        getFile(null)
+    }
+}
+
+/**
+ * @async
+ * @description Function to get update customer setting in local app
+ * @param {String} foldername 
+ * @param {Object} updateobj 
+ * @param {Function} callback 
+ */
+const updateCustomerSetting = (foldername, updateobj, callback) => {
+    const jsonpath = process.env.LOCALAPPDATA + '\\' + foldername + '\\' + customersetting
+
+    function updateFile(err) {
+        if (err) throw err
+        fs.writeFile(jsonpath, JSON.stringify(updateobj, null, 4), getFile)
+    }
+
+    function getFile(err) {
+        if (err) throw err
+        fs.readFile(jsonpath, (err, data) => {
+            if (err) throw err
+            callback(JSON.parse(data))
+        })
+    }
+
+    // check if file exists
+    if (!fs.existsSync(jsonpath)) {
+        const emptyobj = {
+            list : []
+        }
+        fs.writeFile(jsonpath, JSON.stringify(emptyobj, null, 4), updateFile)
+    } else {
+        updateFile(null)
+    }
+}
 
 /**
  * @async
@@ -185,6 +250,8 @@ module.exports = {
     getColumnSetting : getColumnSetting,
     updateColumnSetting : updateColumnSetting,
     updateColumnOnly : updateColumnOnly,
+    getCustomerSetting : getCustomerSetting,
+    updateCustomerSetting : updateCustomerSetting,
     setCurrentTransactionBook : setCurrentTransactionBook,
     getCurrentTransactionBook : getCurrentTransactionBook
 }

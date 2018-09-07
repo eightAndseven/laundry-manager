@@ -3,6 +3,7 @@ const dateformat = require('dateformat')
 const {ipcRenderer, remote} = electron
 let appsettings
 let transactiontablecolumns
+let customers = remote.getGlobal('customersetting')
 
 /**
  * @description Function to change the title of the application
@@ -41,6 +42,95 @@ function transanctioncolumns(){
                 columncost.push(item)
             }             
         })
+
+        // check if customer is activated
+        if (customers.activated) {
+            const customerlist = customers.list
+
+            const outdiv = document.createElement('div')
+            outdiv.className = 'row col s12'
+            const rowdiv = document.createElement('div')
+            rowdiv.className = 'input-field col s6'
+            const i = document.createElement('i')
+            i.className = 'material-icons prefix'
+            i.innerHTML = 'search'
+            const input = document.createElement('input')
+            input.type = 'text'
+            input.id = 'customer-transact-search'
+            const label = document.createElement('label')
+            label.setAttribute('for', 'customer-transact-search')
+            label.innerHTML = 'Search Customer'
+            rowdiv.appendChild(i)
+            rowdiv.appendChild(input)
+            rowdiv.appendChild(label)
+
+            const overflowdiv = document.createElement('div')
+            overflowdiv.style.height = '140px'
+            overflowdiv.style.overflowY = 'scroll'
+            const coldiv = document.createElement('div')
+            coldiv.className = 'collection'
+            customerlist.forEach(item => {
+                const a = document.createElement('a')
+                const text = document.createTextNode(item.name)
+                a.href = '#'
+                a.className = 'collection-item cust-transact-search'
+                a.setAttribute('cust-id', item.id)
+                a.appendChild(text)
+                coldiv.appendChild(a)
+            })
+            overflowdiv.appendChild(coldiv)
+            rowdiv.appendChild(overflowdiv)
+            outdiv.appendChild(rowdiv)
+
+            const customerprofile = document.createElement('div')
+            customerprofile.className = 'col s6'
+            
+            // h4
+            const ch5 = document.createElement('h5')
+            ch5.innerHTML = 'Customer Selected'
+            customerprofile.appendChild(ch5)
+
+            // id
+            let p = document.createElement('p')
+            let text = document.createTextNode('ID: ')
+            let span = document.createElement('span')
+            span.id = 'cust-transact-id'
+            p.appendChild(text)
+            p.appendChild(span)
+            customerprofile.appendChild(p)
+
+            // name
+            p = document.createElement('p')
+            text = document.createTextNode('Name: ')
+            span = document.createElement('span')
+            span.id = 'cust-transact-name'
+            p.appendChild(text)
+            p.appendChild(span)
+            customerprofile.appendChild(p)
+
+            // description
+            p = document.createElement('p')
+            text = document.createTextNode('Description: ')
+            span = document.createElement('span')
+            span.id = 'cust-transact-desc'
+            p.appendChild(text)
+            p.appendChild(span)
+            customerprofile.appendChild(p)
+
+            // number of orders
+            p = document.createElement('p')
+            text = document.createTextNode('Number of orders: ')
+            span = document.createElement('span')
+            span.id = 'cust-transact-norder'
+            p.appendChild(text)
+            p.appendChild(span)
+            customerprofile.appendChild(p)
+            
+            outdiv.appendChild(customerprofile)
+            divtransact.appendChild(outdiv)
+        }
+
+        // name
         if (columnname.length > 0) {
             columnname.forEach(item => {
                 const rowdiv = document.createElement('div')
@@ -60,6 +150,8 @@ function transanctioncolumns(){
                 divtransact.appendChild(rowdiv)
             })
         }
+
+        // cost
         if (columncost.length > 0) {
             columncost.forEach(item => {
                 const row = document.createElement('div')
@@ -173,10 +265,17 @@ function transanctioncolumns(){
     }
 
     // Events        
-    const numberonly = document.querySelectorAll('input.number-only')
+    // form
     const formtransaction = document.querySelector('form#form-add-transaction')
+
+    // anchor
     const canceltransaction = document.querySelector('a#clear-add-transaction')
     const addaddtransaction = document.querySelector('a#add-add-transaction')
+    const custtransactcollection = document.querySelectorAll('a.cust-transact-search')
+
+    // input
+    const numberonly = document.querySelectorAll('input.number-only')
+    const customertransactsearch = document.querySelector('input#customer-transact-search')
     
     numberonly.forEach(item => item.addEventListener('keypress', e => {
         const ev = e ? e : window.event
@@ -216,7 +315,7 @@ function transanctioncolumns(){
     addaddtransaction.addEventListener('click', e => {
         apptransaction = remote.getGlobal('apptransactions')
         const form = document.querySelector('form#form-add-transaction')
-        const input = form.querySelectorAll('input')
+        const input = form.querySelectorAll('input.input-add-transaction-cost')
         // validation
         // check requried first
         let required = true
@@ -249,17 +348,101 @@ function transanctioncolumns(){
                 })
                 item.value = ''
             })
+            const obj = {
+                transact : transact
+            }
+            if (customers.activated) {
+                const id = document.querySelector('span#cust-transact-id')
+                const name = document.querySelector('span#cust-transact-name')
+                const norder = document.querySelector('span#cust-transact-norder')
+                if (id.innerHTML !== '') {
+                    obj.customer = {
+                        id : parseInt(id.innerHTML),
+                        name : name.innerHTML,
+                        norder : parseInt(norder.innerHTML)
+                    }
+                }
+            }
             form.querySelectorAll('span.price-total').forEach(item => item.innerHTML = '0')
             computetotal()
             M.updateTextFields()
 
-            ipcRenderer.send('transact:add', JSON.stringify(transact))
+            ipcRenderer.send('transact:add', JSON.stringify(obj))
             // close modal
             const modal = M.Modal.getInstance(document.querySelector('div#modal-addtransact'))
             modal.close()
         }
         e.preventDefault()
     })
+    if (customers.activated) {
+        custtransactcollection.forEach(a => a.addEventListener('click', e => {
+            e.preventDefault()
+            if (e.target.classList.contains('active')) {
+                e.target.classList.remove('active')
+                // remove selected
+                removeselected()
+            } else {
+                const active = document.querySelector('a.cust-transact-search.active')    
+                if (active != null) {
+                    active.classList.remove('active')
+                    // remove selected
+                    removeselected()
+                }
+                e.target.classList.add('active')
+                // selected
+                const id = parseInt(e.target.getAttribute('cust-id'))
+                for (i in customers.list) {
+                    if (customers.list[i].id == id) {
+                        const obj = customers.list[i]
+                        let span = document.querySelector('span#cust-transact-id')
+                        let text = document.createTextNode(obj.id)
+                        span.appendChild(text)
+                        span = document.querySelector('span#cust-transact-name')
+                        text = document.createTextNode(obj.name)
+                        span.appendChild(text)
+                        span = document.querySelector('span#cust-transact-desc')
+                        text = document.createTextNode(obj.desc)
+                        span.appendChild(text)
+                        span = document.querySelector('span#cust-transact-norder')
+                        text = document.createTextNode(obj.order.length)
+                        span.appendChild(text)
+                        break
+                    }
+                }
+            }
+    
+            function removeselected () {
+                let span = document.querySelector('span#cust-transact-id')
+                span.innerHTML = ''
+                span = document.querySelector('span#cust-transact-name')
+                span.innerHTML = ''
+                span = document.querySelector('span#cust-transact-desc')
+                span.innerHTML = ''
+                span = document.querySelector('span#cust-transact-norder')
+                span.innerHTML = ''
+            }
+        }))
+    
+        customertransactsearch.addEventListener('keyup', e => {
+            const val = e.target.value
+            if (e.target.value !== '') {
+                const acollection = document.querySelectorAll('a.cust-transact-search')
+                acollection.forEach(item => {
+                    const itemname = item.innerHTML
+                    if (itemname.toLowerCase().includes(val.toLowerCase())) {
+                        item.style.display = 'block'
+                    } else {
+                        item.style.display = 'none'
+                    }
+                })
+            } else {
+                const acollection = document.querySelectorAll('a.cust-transact-search')
+                acollection.forEach(item => {
+                    item.style.display = 'block'
+                })
+            }
+        })
+    }
 }
 
 /**
@@ -288,6 +471,25 @@ function tableadd(column_item) {
     tr.appendChild(td)
     // increment by 1
     incrementcolumn += 1
+
+    // check if customer is activated
+    if (customers.activated) {
+        if (typeof column_item.customer !== 'undefined') {
+            const customer = column_item.customer
+            td = document.createElement('td')
+            text = document.createTextNode(customer.name)
+            td.className = 'tooltipped'
+            td.setAttribute('data-position', 'right')
+            td.setAttribute('data-tooltip',  customer.norder + ' order/s')
+    
+            td.appendChild(text)
+            tr.appendChild(td)
+        } else {
+            td = document.createElement('td')
+            tr.appendChild(td)
+        }
+        incrementcolumn += 1
+    }
 
     const thead = document.querySelector('thead#transaction-table-head')
     const th = thead.querySelectorAll('th')
@@ -359,6 +561,19 @@ function transactiontable() {
             column_worn    : 'DateTime' 
         }
     ]
+
+    // check if customers is activated
+    if (customers.activated) {
+        columns.push({
+            column_id      : 'customers',
+            column_name    : 'Customer',
+            column_require : 'Optional',
+            column_desc    : `Customer's Name`,
+            column_worn    : 'Customer' 
+        })
+    }
+
+
     appsettings.columns.forEach(item => columns.push(item))
     columns.push({
         column_id      : 'total',
@@ -437,6 +652,12 @@ ipcRenderer.on('transact:open', (err, data) => {
     appsettings = remote.getGlobal('globalappsettings')
     M.updateTextFields()
     getAppSettings(appsettings)
+    tableclearcontent()
+    transactiontable()
+})
+
+ipcRenderer.on('transact:reset', (err, item) => {
+    transanctioncolumns()
     tableclearcontent()
     transactiontable()
 })
