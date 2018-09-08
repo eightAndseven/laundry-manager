@@ -394,6 +394,7 @@ function transanctioncolumns(){
                 for (i in customers.list) {
                     if (customers.list[i].id == id) {
                         const obj = customers.list[i]
+                        console.log(obj)
                         let span = document.querySelector('span#cust-transact-id')
                         let text = document.createTextNode(obj.id)
                         span.appendChild(text)

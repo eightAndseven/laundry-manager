@@ -38,7 +38,41 @@ function appInit() {
         const transaction = getfromExcel(transactionbook, 'Transactions')
         const summaryreport = getfromExcel(transactionbook, 'Summary Report')
         const columns = getfromExcel(transactionbook, 'Columns')
+        const customertransaction = getfromExcel(transactionbook, 'Customer Transactions')
+        const customersxl = getfromExcel(transactionbook, 'Customers')
         const apptransact = arrangeTransaction(transaction, summaryreport, columns)
+
+        // customers
+        if (customersxl.length > 0) {
+            for (i in customersxl) {
+                customersxl[i].order = []
+            }
+        }
+
+        // customers transaction
+        if (customertransaction.length > 0) {
+            for (i in customertransaction) {
+                let date
+                for (ii in apptransact) {
+                    if (customertransaction[i].transact_date === apptransact[ii].date) {
+                        date = apptransact[ii].date
+                        apptransact[ii].customer = {
+                            id : parseInt(customertransaction[i].id),
+                            name : customertransaction[i].name,
+                            norder : parseInt(customertransaction[i].numberoforder)
+                        }
+                        break
+                    }
+                }
+                for (ii in customersxl) {
+                    if (parseInt(customertransaction[i].id) == parseInt(customersxl[ii].id)) {
+                        customersxl[ii].order.push(date)
+                        break
+                    }
+                }
+            }
+        }
+
         columns.forEach(item => {
             if (item.column_worn === 'Cost') item.column_price = parseFloat(item.column_price)
         })
@@ -53,6 +87,10 @@ function appInit() {
         // local customer setting
         localapp.getCustomerSetting(localfolder, result => {
             customersetting = result
+            customersetting.list = customersxl
+            localapp.updateCustomerSetting(localfolder, customersetting, result => {
+                customersetting = result
+            })
         })
         createWindowMain()
     } else {
@@ -123,7 +161,7 @@ function createWindowMain(){
                     if (buttons[response] === 'Yes') {
                         // save
                         windowMain.hide()
-                        excel.saveAsExcel(globalappsettings.columns, apptransactions, currentSavePath, (err) => {
+                        excel.saveAsExcel(globalappsettings.columns, apptransactions, customersetting.list, currentSavePath, (err) => {
                             if (err) throw err
                             setTimeout(() => {
                                 app.showExitPrompt = false
@@ -317,7 +355,6 @@ function buildtransaction (date, load) {
             total : total
         }
     }
-
 }
 
 /**
@@ -350,7 +387,7 @@ function saveAsFile(){
         dialog.showSaveDialog(windowMain, options, (filename) => {
             if (filename !== undefined) {
                 unsavedchanges = []
-                excel.saveAsExcel(globalappsettings.columns, apptransactions, filename, (err) => {
+                excel.saveAsExcel(globalappsettings.columns, apptransactions, customersetting.list, filename, (err) => {
                     if (err) throw err
                 })
                 currentSavePath = filename
@@ -381,7 +418,7 @@ function arrangeTransaction (transaction, summary, columns) {
         let transactarr = []
         let total = 0
         for (key in item) {
-            if (key !== 'date_time'){
+            if (key !== 'date_time' && key !== 'total'){
                 const foundcolumn = columns.find(obj => obj['column_id'] === key)
                 const name = key
                 const type = foundcolumn['column_worn'].toLowerCase()
@@ -410,6 +447,10 @@ function arrangeTransaction (transaction, summary, columns) {
         })
     })
     return apptransaction
+}
+
+function arrangeCustomers (transaction, customers) {
+
 }
 
 /**
@@ -495,7 +536,7 @@ const menuTemplate = [
                         // has saved file
                         if (unsavedchanges.length > 0) {
                             unsavedchanges = []
-                            excel.saveAsExcel(globalappsettings.columns, apptransactions, currentSavePath, (err) => {
+                            excel.saveAsExcel(globalappsettings.columns, apptransactions, customersetting.list, currentSavePath, (err) => {
                                 if (err) throw err
                             })
                         }
