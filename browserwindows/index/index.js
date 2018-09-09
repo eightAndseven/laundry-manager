@@ -263,6 +263,16 @@ function transanctioncolumns(){
         addends.forEach(item => sum += parseFloat(item.innerHTML))
         total.innerHTML = sum
     }
+    function removeselected () {
+        let span = document.querySelector('span#cust-transact-id')
+        span.innerHTML = ''
+        span = document.querySelector('span#cust-transact-name')
+        span.innerHTML = ''
+        span = document.querySelector('span#cust-transact-desc')
+        span.innerHTML = ''
+        span = document.querySelector('span#cust-transact-norder')
+        span.innerHTML = ''
+    }
 
     // Events        
     // form
@@ -307,6 +317,12 @@ function transanctioncolumns(){
         priceinit.forEach(item => item.innerHTML = '0')
         computetotal()
         M.updateTextFields()
+        // clear customers
+        const active = document.querySelector('a.cust-transact-search.active')
+        if (active != null) {
+            active.classList.remove('active')
+            removeselected ()
+        }
         // close modal
         const modal = M.Modal.getInstance(document.querySelector('div#modal-addtransact'))
         modal.close()
@@ -368,6 +384,12 @@ function transanctioncolumns(){
             M.updateTextFields()
 
             ipcRenderer.send('transact:add', JSON.stringify(obj))
+            // clear customers
+            const active = document.querySelector('a.cust-transact-search.active')
+            if (active != null) {
+                active.classList.remove('active')
+                removeselected ()
+            }
             // close modal
             const modal = M.Modal.getInstance(document.querySelector('div#modal-addtransact'))
             modal.close()
@@ -394,7 +416,6 @@ function transanctioncolumns(){
                 for (i in customers.list) {
                     if (customers.list[i].id == id) {
                         const obj = customers.list[i]
-                        console.log(obj)
                         let span = document.querySelector('span#cust-transact-id')
                         let text = document.createTextNode(obj.id)
                         span.appendChild(text)
@@ -410,17 +431,6 @@ function transanctioncolumns(){
                         break
                     }
                 }
-            }
-    
-            function removeselected () {
-                let span = document.querySelector('span#cust-transact-id')
-                span.innerHTML = ''
-                span = document.querySelector('span#cust-transact-name')
-                span.innerHTML = ''
-                span = document.querySelector('span#cust-transact-desc')
-                span.innerHTML = ''
-                span = document.querySelector('span#cust-transact-norder')
-                span.innerHTML = ''
             }
         }))
     
