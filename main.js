@@ -173,7 +173,11 @@ function createWindowMain(){
                         windowMain.close()
                     }
                 })
+            } else {
+                app.quit()
             }
+        } else {
+            app.quit()
         }
     })
 
@@ -333,6 +337,18 @@ ipcMain.on('customer:delete', (err, item) => {
     localapp.updateCustomerSetting(localfolder, customersetting, data => {
         windowCustomer.webContents.send('customer:deleted', item)
     })
+})
+
+ipcMain.on('index:open:customerpage', (err, item) => {
+    if (windowCustomer == null || typeof windowCustomer === 'undefined') {
+        createWindowCustomer()
+    }
+})
+
+ipcMain.on('index:open:customizecolumn', (err, item) => {
+    if (windowSettings == null || typeof windowSettings === 'undefined') {
+        createSettingsWindow()
+    }
 })
 
 // function to build transaction
@@ -579,14 +595,18 @@ const menuTemplate = [
                 label: 'Customize Columns',
                 accelerator:process.platform === 'darwin' ? 'Command+P' : 'Ctrl+P',
                 click(){
-                    createSettingsWindow()
+                    if (windowSettings == null || typeof windowSettings === 'undefined') {
+                        createSettingsWindow()
+                    }
                 }
             },
             {
                 label : 'Customer Page',
                 accelerator : process.platform === 'darwin' ? 'Command+L' : 'Ctrl+L',
                 click() {
-                    createWindowCustomer()
+                    if (windowCustomer == null || typeof windowCustomer === 'undefined') {
+                        createWindowCustomer()
+                    }
                 }
             }
         ]

@@ -626,6 +626,10 @@ function transactiontable() {
     M.Tooltip.init(elems, tooltipoptions)
 }
 
+// Events
+const acustpage = document.querySelector('a#a-customer-page')
+const acustomcolumn = document.querySelector('a#a-customize-column')
+
 document.addEventListener('DOMContentLoaded', e => {
     appsettings = remote.getCurrentWindow().appsettings
 
@@ -637,6 +641,16 @@ document.addEventListener('DOMContentLoaded', e => {
     transanctioncolumns()
     tableclearcontent()
     transactiontable()
+})
+
+acustpage.addEventListener('click', e => {
+    e.preventDefault()
+    ipcRenderer.send('index:open:customerpage', true)
+})
+
+acustomcolumn.addEventListener('click', e => {
+    e.preventDefault()
+    ipcRenderer.send('index:open:customizecolumn', true)
 })
 
 // ipcRenderer
