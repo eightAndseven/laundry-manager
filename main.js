@@ -8,7 +8,7 @@ const localapp = require('./functions/localapp')
 const {app, BrowserWindow, Menu, dialog, ipcMain} = electron
 app.showExitPrompt = true
 
-const localfolder = 'POSManager2'
+const localfolder = 'POSManager'
 
 // Global variable
 process.env.NODE_ENV = 'development'
@@ -154,6 +154,7 @@ function createWindowMain(){
                 const buttons = ['Yes', 'No', 'Cancel']
                 dialog.showMessageBox(windowMain, {
                     options: ['question'],
+                    type: 'warning',
                     title: 'Unsaved changes',
                     message: 'Do you want to save your unsaved changes before exit?',
                     buttons: buttons
@@ -351,6 +352,41 @@ ipcMain.on('index:open:customizecolumn', (err, item) => {
     }
 })
 
+ipcMain.on('index:transaction:remove', (err, item) => {
+    // load from renderer is stringified
+    const load = JSON.parse(item)
+    let tosplice = []
+    for (i in apptransactions) {
+        if (apptransactions[i].date == load[0]) {
+            unsavedchanges.push('removed')
+            const a = load.shift()
+            if (typeof apptransactions[i].customer !== 'undefined') {
+                const id = apptransactions[i].customer.id
+                for (ii in customersetting.list) {
+                    if (id == parseInt(customersetting.list[ii].id)) {
+                        for (iii in customersetting.list[ii].order) {
+                            if (a === customersetting.list[ii].order[iii]) {
+                                customersetting.list[ii].order.splice(iii, 1)
+                                break
+                            }
+                        }
+                        break
+                    }
+                }
+            }
+            tosplice.push(i)
+        }
+    }
+    tosplice.reverse()
+    for (i in tosplice) {
+        apptransactions.splice(tosplice[i], 1)
+    }
+
+    localapp.updateCustomerSetting(localfolder, customersetting, data => {
+        windowMain.webContents.send('index:transaction:removed', true)
+    })
+})
+
 // function to build transaction
 function buildtransaction (date, load) {
     let total = 0
@@ -465,9 +501,6 @@ function arrangeTransaction (transaction, summary, columns) {
     return apptransaction
 }
 
-function arrangeCustomers (transaction, customers) {
-
-}
 
 /**
  * @description Function to open dialog box for new transaction book

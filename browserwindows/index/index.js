@@ -1,6 +1,6 @@
 const electron = require('electron')
 const dateformat = require('dateformat')
-const {ipcRenderer, remote} = electron
+const {ipcRenderer, remote, dialog} = electron
 let appsettings
 let transactiontablecolumns
 let customers = remote.getGlobal('customersetting')
@@ -472,8 +472,24 @@ function tableclearcontent() {
  */
 function tableadd(column_item) {
     const tbody = document.querySelector('tbody#transaction-table-body')
-    tr = document.createElement('tr')
+    const tr = document.createElement('tr')
+    tr.style.display = 'table-row'
     let incrementcolumn = 0
+
+    const tdbox = document.createElement('td')
+    const tdlabel = document.createElement('label')
+    const tdcheckbox = document.createElement('input')
+    const tdspan = document.createElement('span')
+    tdspan.style.left = '10%'
+    tdcheckbox.type = 'checkbox'
+    tdcheckbox.className = 'td-checkbox'
+    tdcheckbox.setAttribute('date', column_item.date)
+    tdlabel.appendChild(tdcheckbox)
+    tdlabel.appendChild(tdspan)
+    tdbox.appendChild(tdlabel)
+    tr.appendChild(tdbox)
+    incrementcolumn += 1
+
     // date
     let td = document.createElement('td')
     const date = dateformat(column_item.date, 'mmm dd, yy - hh:MM:ss TT')
@@ -538,7 +554,7 @@ function tableadd(column_item) {
     // total
     const totalelem = document.querySelector('th[column-code="total"]')
     // increment by 1 to represent column
-    while (incrementcolumn != parseInt(totalelem.getAttribute('column-index'))) {
+    while (incrementcolumn <= parseInt(totalelem.getAttribute('column-index'))) {
         td = document.createElement('td')
         td.innerHTML = ''
         tr.appendChild(td)
@@ -595,6 +611,19 @@ function transactiontable() {
     })
     transactiontablecolumns = []
     let tr = document.createElement('tr')
+
+    const thbox = document.createElement('th')
+    const thlabel = document.createElement('label')
+    const thcheckbox = document.createElement('input')
+    const thspan = document.createElement('span')
+    thspan.style.left = '10%'
+    thcheckbox.type = 'checkbox'
+    thcheckbox.id = 'th-checkbox'
+    thlabel.appendChild(thcheckbox)
+    thlabel.appendChild(thspan)
+    thbox.appendChild(thlabel)
+    tr.appendChild(thbox)
+
     columns.forEach((item, index) => {
         transactiontablecolumns.push(item.column_id)
         const th = document.createElement('th')
@@ -624,11 +653,37 @@ function transactiontable() {
         enterDelay : 1000
     }
     M.Tooltip.init(elems, tooltipoptions)
+
+    // Events
+    const ethcheckbox = document.querySelector('input#th-checkbox')
+
+    ethcheckbox.addEventListener('change', e => {
+        const ischecked = e.target.checked
+        const tdcbox = document.querySelectorAll('input.td-checkbox')
+        if (ischecked) {
+            tdcbox.forEach(item => {
+                const ctr = item.closest('tr')
+                if (!item.checked && ctr.style.display === 'table-row') {
+                    item.checked = true
+                }
+            })
+        } else {
+            tdcbox.forEach(item => {
+                const ctr = item.closest('tr')
+                if (item.checked && ctr.style.display === 'table-row') {
+                    item.checked = false
+                }
+            })
+        }
+    })
+
+
 }
 
 // Events
 const acustpage = document.querySelector('a#a-customer-page')
 const acustomcolumn = document.querySelector('a#a-customize-column')
+const aremoverow = document.querySelector('a#remove-row')
 
 document.addEventListener('DOMContentLoaded', e => {
     appsettings = remote.getCurrentWindow().appsettings
@@ -636,6 +691,10 @@ document.addEventListener('DOMContentLoaded', e => {
     // Matrialize initialize
     // modal
     M.Modal.init(document.querySelectorAll('.modal'))
+    M.FloatingActionButton.init(document.querySelectorAll('.fixed-action-btn'), {
+        direction : 'left',
+        hoverEnabled : false
+    })
 
     getAppSettings(appsettings)
     transanctioncolumns()
@@ -651,6 +710,41 @@ acustpage.addEventListener('click', e => {
 acustomcolumn.addEventListener('click', e => {
     e.preventDefault()
     ipcRenderer.send('index:open:customizecolumn', true)
+})
+
+aremoverow.addEventListener('click', e => {
+    e.preventDefault()
+    const tdcbox = document.querySelectorAll('input.td-checkbox')
+    let checked = []
+    for (i in tdcbox) {
+        if (tdcbox[i].checked == true) {
+            checked.push(tdcbox[i])
+        }
+    }
+    if (checked.length > 0) {
+        remote.dialog.showMessageBox({
+            type : 'question',
+            title : 'Remove transactions?',
+            buttons : ['Yes', 'No'],
+            message : 'Remove selected transactions? \n Number of transactions: ' + checked.length
+        }, response => {
+            if (response == 0) {
+                let dates = []
+                for (i in checked) {
+                    // console.log(checked[i])
+                    dates.push(checked[i].getAttribute('date'))
+                }
+                dates.reverse()
+                ipcRenderer.send('index:transaction:remove', JSON.stringify(dates))
+            }
+        })
+    } else {
+        remote.dialog.showMessageBox({
+            type : 'info',
+            title : 'Remove transactions?',
+            message : 'No selected rows to delete'
+        })
+    }
 })
 
 // ipcRenderer
@@ -683,6 +777,11 @@ ipcRenderer.on('transact:open', (err, data) => {
 
 ipcRenderer.on('transact:reset', (err, item) => {
     transanctioncolumns()
+    tableclearcontent()
+    transactiontable()
+})
+
+ipcRenderer.on('index:transaction:removed', (err, item) => {
     tableclearcontent()
     transactiontable()
 })
