@@ -23,7 +23,7 @@ const createLocalAppData = (foldername, callback) => {
         }
         const customerpath = process.env.LOCALAPPDATA + '\\' + foldername + '\\' + customersetting
         if (!fs.existsSync(customerpath)) {
-            fs.writeFileSync(customerpath, JSON.stringify({list:[]}, null, 4))
+            fs.writeFileSync(customerpath, JSON.stringify({list:[], activated : false}, null, 4))
         }
         if (typeof callback !== 'undefined') callback(null)
     } catch (err) {

@@ -11,7 +11,7 @@ app.showExitPrompt = true
 const localfolder = 'POSManager'
 
 // Global variable
-process.env.NODE_ENV = 'development'
+process.env.NODE_ENV = 'production'
 let windowInit
 let windowMain
 let windowSettings

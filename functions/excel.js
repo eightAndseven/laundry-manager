@@ -252,8 +252,8 @@ const saveNewExcel = (filename, callback) => {
     const ws1 = wb.addWorksheet('Transactions')
     const ws2 = wb.addWorksheet('Summary Report')
     const ws3 = wb.addWorksheet('Columns')
-    const ws5 = wb.addWorksheet('Customer Transactions')
-    const ws5 = wb.addWorksheet('Customer')
+    const ws4 = wb.addWorksheet('Customer Transactions')
+    const ws5 = wb.addWorksheet('Customers')
 
     wb.write(filename)
     setTimeout(() => {
