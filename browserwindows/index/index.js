@@ -20,7 +20,7 @@ function getAppSettings(data){
 /**
  * @description Function to load customized columns
  */
-function transanctioncolumns(){
+function transactioncolumns(){
     const divcolumn = document.querySelector('div#transaction-columns')
     divcolumn.innerHTML = ''
     const columns = appsettings.columns
@@ -697,7 +697,7 @@ document.addEventListener('DOMContentLoaded', e => {
     })
 
     getAppSettings(appsettings)
-    transanctioncolumns()
+    transactioncolumns()
     tableclearcontent()
     transactiontable()
 })
@@ -753,7 +753,7 @@ ipcRenderer.on('user:settings', (err, data) => {
     brand.innerHTML = data.appname
     document.title = data.appname
     appsettings = remote.getCurrentWindow().appsettings
-    transanctioncolumns()
+    transactioncolumns()
     tableclearcontent()
     transactiontable()
 })
@@ -776,7 +776,8 @@ ipcRenderer.on('transact:open', (err, data) => {
 })
 
 ipcRenderer.on('transact:reset', (err, item) => {
-    transanctioncolumns()
+    customers = remote.getGlobal('customersetting')
+    transactioncolumns()
     tableclearcontent()
     transactiontable()
 })
@@ -784,4 +785,9 @@ ipcRenderer.on('transact:reset', (err, item) => {
 ipcRenderer.on('index:transaction:removed', (err, item) => {
     tableclearcontent()
     transactiontable()
+})
+
+ipcRenderer.on('index:reset:column', (err, item) => {
+    customers = remote.getGlobal('customersetting')
+    transactioncolumns()
 })

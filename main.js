@@ -11,7 +11,7 @@ app.showExitPrompt = true
 const localfolder = 'POSManager'
 
 // Global variable
-process.env.NODE_ENV = 'production'
+process.env.NODE_ENV = 'development'
 let windowInit
 let windowMain
 let windowSettings
@@ -275,6 +275,7 @@ ipcMain.on('settings:update', (err, item) => {
         globalappsettings = data
         windowMain.appsettings = globalappsettings
         windowMain.webContents.send('user:settings', data)
+        unsavedchanges.push('settings updated')
     })
     windowSettings.close()
     windowSettings = null
@@ -314,7 +315,9 @@ ipcMain.on('customer:add', (err, item) => {
     const obj = JSON.parse(item)
     customersetting.list.push(obj)
     localapp.updateCustomerSetting(localfolder, customersetting, data => {
+        unsavedchanges.push('added customer')
         windowCustomer.webContents.send('customer:added', JSON.stringify(obj))
+        windowMain.webContents.send('index:reset:column', true)
     })
 })
 
@@ -322,6 +325,7 @@ ipcMain.on('customer:activate', (err, item) => {
     // load from ipcRenderer is boolean
     customersetting.activated = item
     localapp.updateCustomerSetting(localfolder, customersetting, data => {
+        unsavedchanges.push('customer activated')
         windowCustomer.webContents.send('customer:activated', item)
         windowMain.webContents.send('transact:reset', true)
     })
@@ -336,7 +340,9 @@ ipcMain.on('customer:delete', (err, item) => {
         }
     }
     localapp.updateCustomerSetting(localfolder, customersetting, data => {
+        unsavedchanges.push('remove customer')
         windowCustomer.webContents.send('customer:deleted', item)
+        windowMain.webContents.send('index:reset:column', true)
     })
 })
 
@@ -358,7 +364,6 @@ ipcMain.on('index:transaction:remove', (err, item) => {
     let tosplice = []
     for (i in apptransactions) {
         if (apptransactions[i].date == load[0]) {
-            unsavedchanges.push('removed')
             const a = load.shift()
             if (typeof apptransactions[i].customer !== 'undefined') {
                 const id = apptransactions[i].customer.id
@@ -383,6 +388,7 @@ ipcMain.on('index:transaction:remove', (err, item) => {
     }
 
     localapp.updateCustomerSetting(localfolder, customersetting, data => {
+        unsavedchanges.push('removed')
         windowMain.webContents.send('index:transaction:removed', true)
     })
 })
