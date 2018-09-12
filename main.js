@@ -17,7 +17,7 @@ let windowMain
 let windowSettings
 let windowCustomer
 let splashScreen
-let currentSavePath = null
+global.currentSavePath = null
 
 global.globalappsettings = {}
 global.apptransactions = []
@@ -226,7 +226,9 @@ function createSplashScreen() {
 function createSettingsWindow(){
     windowSettings = new BrowserWindow({
         title: 'User Settings',
-        resizable : false
+        resizable : false,
+        height : 675,
+        width : 800
     })
     windowSettings.loadURL(url.format({
         pathname: path.join(__dirname, 'browserwindows/column-settings/settings.html'),

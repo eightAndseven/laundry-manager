@@ -4,6 +4,7 @@ const {ipcRenderer, remote, dialog} = electron
 let appsettings
 let transactiontablecolumns
 let customers = remote.getGlobal('customersetting')
+const foldername = remote.getGlobal('currentSavePath')
 
 /**
  * @description Function to change the title of the application
@@ -13,7 +14,7 @@ function getAppSettings(data){
     if (typeof data.appname !== 'undefined') {
         const brand = document.querySelector('a#brand')
         brand.innerHTML = data.appname
-        document.title = data.appname
+        document.title = foldername + ' - '+ data.appname + ' - POSManager'
     }
 }
 
@@ -751,7 +752,7 @@ aremoverow.addEventListener('click', e => {
 ipcRenderer.on('user:settings', (err, data) => {
     const brand = document.querySelector('a#brand')
     brand.innerHTML = data.appname
-    document.title = data.appname
+    document.title = foldername + ' - ' + data.appname + ' - POSManager'
     appsettings = remote.getCurrentWindow().appsettings
     transactioncolumns()
     tableclearcontent()
