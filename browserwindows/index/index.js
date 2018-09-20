@@ -1,6 +1,6 @@
 const electron = require('electron')
 const dateformat = require('dateformat')
-const {ipcRenderer, remote, dialog} = electron
+const {ipcRenderer, remote} = electron
 let appsettings
 let transactiontablecolumns
 let customers = remote.getGlobal('customersetting')
@@ -685,6 +685,7 @@ function transactiontable() {
 const acustpage = document.querySelector('a#a-customer-page')
 const acustomcolumn = document.querySelector('a#a-customize-column')
 const aremoverow = document.querySelector('a#remove-row')
+const ageneratereport = document.querySelector('a#generate-report')
 
 document.addEventListener('DOMContentLoaded', e => {
     appsettings = remote.getCurrentWindow().appsettings
@@ -744,6 +745,50 @@ aremoverow.addEventListener('click', e => {
             type : 'info',
             title : 'Remove transactions?',
             message : 'No selected rows to delete'
+        })
+    }
+})
+
+ageneratereport.addEventListener('click', e => {
+    e.preventDefault()
+    const tdcbox = document.querySelectorAll('input.td-checkbox')
+    let checked = []
+    for (i in tdcbox) {
+        if (tdcbox[i].checked == true) {
+            checked.push(tdcbox[i])
+        }
+    }
+    if (checked.length > 0) {
+        // do something
+        remote.dialog.showSaveDialog({
+            title : 'Generate Reports',
+            filters : [
+                {
+                    name : 'Excel Workbook',
+                    extensions : ['xlsx']
+                }
+            ],
+            buttonLabel : 'Save As',
+            defaultPath : 'Generated Report - ' + dateformat(new Date(), 'mmm dd, yy hhMMssTT')
+        }, result => {
+            if (result !== 'undefined') {
+                let obj = {
+                    filepath : result,
+                    dates : []
+                }
+                for (i in checked) {
+                    // console.log(checked[i])
+                    obj.dates.push(checked[i].getAttribute('date'))
+                }
+                obj.dates.reverse()
+                ipcRenderer.send('index:transaction:generatereport', JSON.stringify(obj))
+            }
+        })
+    } else {
+        remote.dialog.showMessageBox({
+            type : 'info',
+            title : 'Generate Reports',
+            message : 'No rows were selected'
         })
     }
 })

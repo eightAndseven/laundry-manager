@@ -522,11 +522,78 @@ function funcsaveAsExcelNew(columns, transaction, customers, filename){
     wb.write(filename)
 }
 
+const saveGenerateReport = async (transactions, filename, callback) => {
+    try {
+        await new Promise(resolve => {
+            const wb = new xl.Workbook()
+
+            // worksheets
+            const ws = wb.addWorksheet('Report')
+            const codeletternumber = 64
+
+            let xlrowcounter = 1
+            let xlcolumncounter = 1
+            const summarycolumn = ['prod_name', 'prod_price', 'prod_sold', 'prod_sale']
+            // print columns
+            summarycolumn.forEach(item => {
+                ws.cell(xlrowcounter, xlcolumncounter).string(item)
+                xlcolumncounter += 1
+            })
+
+            xlrowcounter += 1
+            let report = []
+            transactions.forEach(item => {
+                item.transact.forEach(iitem => {
+                    if (iitem.type === 'cost') {
+                        const reportobj = report.find(e => e.prod_name === iitem.name && e.prod_price == iitem.value.price)
+                        if (typeof reportobj !== 'undefined') {
+                            reportobj.prod_sold += iitem.value.quantity
+                            const total = iitem.value.quantity * iitem.value.price
+                            reportobj.prod_total += total
+                        } else {
+                            report.push({
+                                prod_name : iitem.name,
+                                prod_price : iitem.value.price,
+                                prod_sold : iitem.value.quantity,
+                                prod_total : iitem.value.price * iitem.value.quantity
+                            })
+                        }
+                    }
+                })
+            })
+            let grandtotalformula = ''
+            for (i in report) {
+                ws.cell(xlrowcounter, summarycolumn.indexOf('prod_name') + 1).string(report[i]['prod_name'])
+                ws.cell(xlrowcounter, summarycolumn.indexOf('prod_price') + 1).number(report[i]['prod_price'])
+                ws.cell(xlrowcounter, summarycolumn.indexOf('prod_sold') + 1).number(report[i]['prod_sold'])
+                const formula = String.fromCharCode( codeletternumber + summarycolumn.indexOf('prod_price') + 1 ) + xlrowcounter.toString() + '*' +
+                                String.fromCharCode( codeletternumber + summarycolumn.indexOf('prod_sold') + 1) + xlrowcounter.toString()
+                ws.cell(xlrowcounter, summarycolumn.indexOf('prod_sale') + 1).formula(formula)
+                if (grandtotalformula === '') {
+                    grandtotalformula += String.fromCharCode( codeletternumber + summarycolumn.indexOf('prod_sale') + 1) + xlrowcounter
+                } else {
+                    grandtotalformula += '+' + String.fromCharCode( codeletternumber + summarycolumn.indexOf('prod_sale') + 1) + xlrowcounter
+                }
+                xlrowcounter += 1
+            }
+            // total
+            ws.cell(xlrowcounter, summarycolumn.indexOf('prod_sold') + 1).string('Total')
+            ws.cell(xlrowcounter, summarycolumn.indexOf('prod_sale') + 1).formula(grandtotalformula)
+            wb.write(filename)
+            resolve()
+        })
+        callback(null)
+    } catch (err) {
+        callback(err)
+    }
+}
+
 
 module.exports = {
     // saveAsExcel : saveAsExcel,
     saveAsExcel : saveAsExcelNew,
     openExcel : openExcel,
     openExcelSync : openExcelSync,
-    saveNewExcel : saveNewExcel
+    saveNewExcel : saveNewExcel,
+    saveGenerateReport : saveGenerateReport
 }

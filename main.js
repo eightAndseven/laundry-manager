@@ -365,7 +365,7 @@ ipcMain.on('index:transaction:remove', (err, item) => {
     const load = JSON.parse(item)
     let tosplice = []
     for (i in apptransactions) {
-        if (apptransactions[i].date == load[0]) {
+        if (apptransactions[i].date === load[0]) {
             const a = load.shift()
             if (typeof apptransactions[i].customer !== 'undefined') {
                 const id = apptransactions[i].customer.id
@@ -394,6 +394,27 @@ ipcMain.on('index:transaction:remove', (err, item) => {
         windowMain.webContents.send('index:transaction:removed', true)
     })
 })
+
+ipcMain.on('index:transaction:generatereport', (err, item) => {
+    // load from renderer is stringified
+    let load = JSON.parse(item)
+
+    let transactions = []
+    for (i in apptransactions) {
+        if (load.dates.length > 0) {
+            if (apptransactions[i].date === load.dates[0]) {
+                const a = load.dates.shift()
+                transactions.push(apptransactions[i])
+            }
+        } else {
+            break
+        }
+    }
+    excel.saveGenerateReport(transactions, load.filepath, (err) => {
+        if (err) throw err
+    })
+})
+
 
 // function to build transaction
 function buildtransaction (date, load) {

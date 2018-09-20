@@ -8,6 +8,12 @@
     <!-- Compiled and minified CSS -->
     <link rel="stylesheet" href="../../node_modules/materialize-css/dist/css/materialize.min.css">
 
+    <style>
+        .modal {
+            max-height : 85% !important;
+            width : 85% !important;
+        }
+    </style>
 </head>
 <body>
     <nav>
@@ -52,10 +58,11 @@
 
     <div class="fixed-action-btn">
         <a class="btn-floating btn-large red darken-2">
-            <i class="large material-icons">mode_edit</i>
+            <i class="large material-icons">menu</i>
         </a>
         <ul>
-            <li><a id="remove-row" class="btn-floating red tooltipped" data-tooltip="Remove row/s" data-position="top"><i class="material-icons">remove</i></a></li>
+            <li><a id="remove-row" class="btn-floating red lighten-1 tooltipped" data-tooltip="Remove row/s" data-position="top"><i class="material-icons">delete</i></a></li>
+            <li><a id="generate-report" class="btn-floating green lighten-1 tooltipped" data-tooltip="Generate Report" data-position="top"><i class="material-icons">file_download</i></a></li>        
         </ul>
     </div>
 
